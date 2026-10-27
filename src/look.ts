@@ -4,7 +4,7 @@ export const FOG_COLOR = new Color(0xd7c4aa);
 export const FOG_DENSITY = 0.0046;
 
 /** Direction sunlight travels, late afternoon from the southwest. */
-export const LIGHT_DIR = new Vector3(0.8, -0.2, 0.42).normalize();
+export const LIGHT_DIR = new Vector3(-0.72, -0.32, -0.48).normalize();
 
 export const SUN_COLOR = new Color(0xffc48a);
 export const CLOUD_SUN_COLOR = new Color(0xc9b3a2);

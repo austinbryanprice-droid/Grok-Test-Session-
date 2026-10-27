@@ -1,19 +1,20 @@
 import {
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   Color,
   CylinderGeometry,
   DoubleSide,
   FrontSide,
-  IcosahedronGeometry,
   InstancedMesh,
   MeshStandardMaterial,
   Object3D,
+  SRGBColorSpace,
+  Texture,
 } from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WORLD, computeHeight, inClearing, settlement, slopeAt, splatWeights, WATER_Y } from './field';
 import { lit } from './lit';
-import { mulberry32, noise2 } from './noise';
+import { mulberry32 } from './noise';
 import type { Library } from './textures';
 
 const windTime = { value: 0 };
@@ -36,24 +37,33 @@ export function createFoliage(library: Library): {
     roughness: 1,
     metalness: 0,
   });
+  const leaves = leafTexture();
   const leaf = lit(
     {
-      color: 0x8ea24a,
-      roughness: 0.86,
+      map: leaves,
+      color: 0x8fbf45,
+      alphaTest: 0.4,
+      roughness: 0.82,
       metalness: 0,
+      side: DoubleSide,
+      shadowSide: FrontSide,
       vertexColors: true,
-      envMapIntensity: 0.3,
+      envMapIntensity: 0.25,
     },
-    (material) => bindWind(material, 0.04),
+    (material) => bindWind(material, 0.05, true),
   );
   const shrubMat = lit(
     {
-      color: 0x6f8a3c,
-      roughness: 0.9,
+      map: leaves,
+      color: 0x6f9a38,
+      alphaTest: 0.4,
+      roughness: 0.86,
       metalness: 0,
+      side: DoubleSide,
+      shadowSide: FrontSide,
       vertexColors: true,
     },
-    (material) => bindWind(material, 0.03),
+    (material) => bindWind(material, 0.04, true),
   );
   const grassMat = lit(
     {
@@ -191,35 +201,84 @@ function bindWind(material: MeshStandardMaterial, amount: number, liftNormal = f
   };
 }
 
-function leafGeometry(): BufferGeometry {
-  const lobes: Array<[number, number, number, number, number, number]> = [
-    [0, 0.35, 0, 1.05, 0.78, 1.0],
-    [0.72, 0.15, 0.18, 0.7, 0.55, 0.68],
-    [-0.68, 0.12, 0.22, 0.66, 0.52, 0.64],
-    [0.12, 0.55, -0.58, 0.62, 0.5, 0.6],
-    [-0.08, 0.05, 0.7, 0.58, 0.46, 0.56],
+function leafTexture(): Texture {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('leaf texture');
+  ctx.clearRect(0, 0, size, size);
+  const blobs: Array<[number, number, number, number, string]> = [
+    [64, 78, 22, 40, 'rgba(48,120,36,0.95)'],
+    [48, 70, 16, 30, 'rgba(70,145,42,0.95)'],
+    [80, 66, 15, 28, 'rgba(90,150,40,0.92)'],
+    [60, 48, 12, 22, 'rgba(120,160,48,0.9)'],
+    [74, 90, 14, 24, 'rgba(40,100,32,0.95)'],
   ];
-  const parts = lobes.map(([x, y, z, sx, sy, sz]) => {
-    const geometry = new IcosahedronGeometry(1, 3);
-    geometry.scale(sx, sy, sz);
-    geometry.translate(x, y, z);
-    return geometry;
-  });
-  const geometry = mergeGeometries(parts, false);
-  const position = geometry.attributes.position;
-  const colors = new Float32Array(position.count * 3);
-  for (let i = 0; i < position.count; i += 1) {
-    const x = position.getX(i);
-    const y = position.getY(i);
-    const z = position.getZ(i);
-    const n = noise2(x * 1.6, z * 1.6);
-    const shade = Math.max(0.42, Math.min(1, 0.5 + y * 0.38 + n * 0.12));
-    colors[i * 3] = shade;
-    colors[i * 3 + 1] = shade * 0.98;
-    colors[i * 3 + 2] = shade * 0.82;
+  for (const [x, y, rx, ry, color] of blobs) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0.3, 0, Math.PI * 2);
+    ctx.fill();
   }
-  geometry.setAttribute('color', new BufferAttribute(colors, 3));
-  geometry.computeVertexNormals();
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function leafGeometry(): BufferGeometry {
+  const rand = mulberry32(5);
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const colors: number[] = [];
+  const indices: number[] = [];
+  const cards = 36;
+  let vertex = 0;
+  for (let i = 0; i < cards; i += 1) {
+    const theta = rand() * Math.PI * 2;
+    const lift = 0.2 + rand() * 0.8;
+    const radius = 0.35 + rand() * 0.7 * (1 - lift * 0.25);
+    const cx = Math.cos(theta) * radius;
+    const cz = Math.sin(theta) * radius;
+    const cy = lift * 0.85;
+    const size = 0.32 + rand() * 0.28;
+    const yaw = rand() * Math.PI;
+    const shade = 0.55 + lift * 0.4;
+    for (const turn of [0, Math.PI / 2]) {
+      const angle = yaw + turn;
+      const dx = Math.cos(angle) * size;
+      const dz = Math.sin(angle) * size;
+      const y0 = cy - size * 0.85;
+      const y1 = cy + size * 0.95;
+      const corners = [
+        [cx - dx, y0, cz - dz],
+        [cx + dx, y0, cz + dz],
+        [cx + dx * 0.72, y1, cz + dz * 0.72],
+        [cx - dx * 0.72, y1, cz - dz * 0.72],
+      ];
+      const uv = [
+        [0, 0],
+        [1, 0],
+        [1, 1],
+        [0, 1],
+      ];
+      for (let c = 0; c < 4; c += 1) {
+        positions.push(corners[c][0], corners[c][1], corners[c][2]);
+        normals.push(0, 1, 0);
+        uvs.push(uv[c][0], uv[c][1]);
+        colors.push(shade, shade, shade * 0.9);
+      }
+      indices.push(vertex, vertex + 1, vertex + 2, vertex, vertex + 2, vertex + 3);
+      vertex += 4;
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
+  geometry.setAttribute('normal', new BufferAttribute(new Float32Array(normals), 3));
+  geometry.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2));
+  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
   return geometry;
 }
 

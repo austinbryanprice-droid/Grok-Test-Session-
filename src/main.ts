@@ -60,15 +60,15 @@ const csm = new CSM({
   lightFar: 800,
   lightMargin: 120,
 });
-csm.fade = true;
+csm.fade = false;
 ShaderChunk.lights_fragment_begin = ShaderChunk.lights_fragment_begin.replaceAll(
   'getPointShadow( pointShadowMap[ i ], pointLightShadow.shadowMapSize, pointLightShadow.shadowBias,',
   'getPointShadow( pointShadowMap[ i ], pointLightShadow.shadowMapSize, pointLightShadow.shadowIntensity, pointLightShadow.shadowBias,',
 );
 for (const light of csm.lights) {
   light.color.copy(SUN_COLOR);
-  light.shadow.normalBias = 0.04;
-  light.shadow.radius = 0.85;
+  light.shadow.normalBias = 0.02;
+  light.shadow.radius = 0.45;
   light.shadow.mapSize.set(2048, 2048);
 }
 applyCSM(csm);

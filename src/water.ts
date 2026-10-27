@@ -61,11 +61,11 @@ void main() {
   float fres = pow(1.0 - clamp(dot(viewDir, n), 0.0, 1.0), 3.0);
   vec3 water = mix(uShallow, uDeep, smoothstep(0.12, 0.8, mask.r));
   float spec = pow(max(dot(normalize(uSun + viewDir), n), 0.0), 140.0);
-  vec3 col = mix(water, refl, clamp(fres * 0.75 + 0.05, 0.0, 0.88));
-  col += vec3(1.0, 0.86, 0.62) * spec * 0.6;
+  vec3 col = mix(water, refl, clamp(fres * 0.42 + 0.03, 0.0, 0.5));
+  col += vec3(1.0, 0.9, 0.7) * spec * 0.45;
   float foamNoise = texture2D(uCloud, vWorld.xz * 0.09 + vec2(uTime * 0.02, 0.0)).r;
-  float foam = mask.g * smoothstep(0.42, 0.78, foamNoise);
-  col = mix(col, vec3(0.84, 0.81, 0.72), foam * 0.8);
+  float foam = mask.g * smoothstep(0.22, 0.62, foamNoise);
+  col = mix(col, vec3(0.9, 0.93, 0.9), foam);
   float cloud = texture2D(uCloud, vWorld.xz * 0.007 + vec2(uTime * 0.004, uTime * 0.001)).r;
   col *= mix(0.7, 1.0, smoothstep(0.2, 0.82, cloud));
   float dist = length(cameraPosition - vWorld);
@@ -101,8 +101,8 @@ export function createRiver(library: Library): River {
       uCloud: { value: library.cloud },
       uTime: time,
       uSun: { value: LIGHT_DIR.clone().multiplyScalar(-1) },
-      uShallow: { value: new Vector3(0.16, 0.38, 0.34) },
-      uDeep: { value: new Vector3(0.02, 0.1, 0.16) },
+      uShallow: { value: new Vector3(0.05, 0.42, 0.4) },
+      uDeep: { value: new Vector3(0.01, 0.08, 0.2) },
       uFogColor: { value: FOG_COLOR },
       uFogDensity: { value: FOG_DENSITY },
     },

@@ -46,23 +46,26 @@ export function createAtmosphere(scene: Scene): { sky: Mesh; fill: HemisphereLig
     )
     .replace(
       'vec3 retColor = pow( texColor, vec3( 1.0 / ( 1.2 + ( 1.2 * vSunfade ) ) ) );',
-      `vec3 retColor = pow( texColor, vec3( 1.0 / ( 1.2 + ( 1.2 * vSunfade ) ) ) ) * 0.42;
+      `vec3 retColor = pow( texColor, vec3( 1.0 / ( 1.2 + ( 1.2 * vSunfade ) ) ) );
        float above = max(direction.y, 0.0);
+       vec3 horizon = vec3(0.28, 0.4, 0.62);
+       vec3 zenith = vec3(0.12, 0.28, 0.7);
+       retColor = mix(horizon, zenith, smoothstep(0.0, 0.55, above));
+       float sunFacing = clamp(dot(normalize(direction), normalize(vSunDirection)), 0.0, 1.0);
+       retColor = mix(retColor, vec3(0.72, 0.52, 0.28), pow(sunFacing, 4.0) * 0.45);
+       retColor += vec3(0.85, 0.62, 0.28) * pow(sunFacing, 28.0) * 0.35;
        vec2 cuv = direction.xz / max(above, 0.12);
        float cloud = cloudFbm(cuv * 1.35 + vec2(uCloudTime * 0.012, uCloudTime * 0.004));
-       cloud = smoothstep(0.46, 0.75, cloud);
-       cloud *= smoothstep(0.0, 0.2, above);
-       float sunFacing = clamp(dot(normalize(direction), normalize(vSunDirection)) * 0.5 + 0.5, 0.0, 1.0);
-       vec3 cloudCol = mix(vec3(0.42, 0.38, 0.4), vec3(1.0, 0.78, 0.55), sunFacing);
-       retColor = mix(retColor, vec3(0.34, 0.5, 0.78), smoothstep(0.12, 0.75, above) * 0.62);
-       retColor = mix(retColor, cloudCol, cloud * 0.8);`,
+       cloud = smoothstep(0.48, 0.76, cloud) * smoothstep(0.02, 0.22, above);
+       vec3 cloudCol = mix(vec3(0.62, 0.68, 0.74), vec3(1.0, 0.9, 0.75), sunFacing);
+       retColor = mix(retColor, cloudCol, cloud * 0.72);`,
     );
   material.needsUpdate = true;
   sky.scale.setScalar(700);
   sky.frustumCulled = false;
   scene.add(sky);
 
-  const fill = new HemisphereLight(SKY_FILL, GROUND_BOUNCE, 0.48);
+  const fill = new HemisphereLight(SKY_FILL, GROUND_BOUNCE, 0.22);
   scene.add(fill);
   return { sky, fill };
 }

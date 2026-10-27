@@ -35,10 +35,10 @@ export class Rig {
 
   frameNear(): void {
     const home = settlement();
-    this.target.set(home.x - 2.4, home.y + 1.7, home.z - 0.4);
-    this.azimuth = -2.35;
-    this.polar = 1.18;
-    this.distance = 18;
+    this.target.set(home.x - 1.2, home.y + 1.1, home.z + 1.5);
+    this.azimuth = -2.0;
+    this.polar = 1.02;
+    this.distance = 24;
     this.apply();
   }
 

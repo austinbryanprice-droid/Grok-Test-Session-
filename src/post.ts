@@ -32,7 +32,7 @@ const GradeShader = {
     void main() {
       vec3 color = texture2D(tDiffuse, vUv).rgb;
       float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-      color *= mix(vec3(1.0), vec3(1.07, 0.98, 0.86), smoothstep(0.04, 0.55, luma));
+      color *= mix(vec3(1.0), vec3(1.02, 1.0, 0.98), smoothstep(0.2, 0.75, luma));
       color = max(color, vec3(0.0));
       float vignette = smoothstep(1.05, 0.28, length(vUv - 0.5));
       color *= mix(0.9, 1.0, vignette);
