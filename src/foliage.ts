@@ -9,7 +9,7 @@ import {
   Object3D,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { WORLD, cliffEdgeX, computeHeight, crops, inClearing, inCrop, riverCenterX, settlement, slopeAt, splatWeights, WATER_Y } from './field';
+import { WORLD, cliffEdgeX, computeHeight, crops, inClearing, inCrop, riverCenterX, settlement, slopeAt, WATER_Y } from './field';
 import { lit } from './lit';
 import { mulberry32 } from './noise';
 import { billboardMaterial, spriteQuad, type FoliageSprites } from './sprites';
@@ -45,7 +45,7 @@ export function createFoliage(library: Library, sprites: FoliageSprites): {
   volumeMat.colorWrite = false;
   volumeMat.depthWrite = false;
   const grassMat = billboardMaterial(sprites.grass.map);
-  const shrubMat = billboardMaterial(sprites.grass.map, 0xd7e7a4);
+  const shrubMat = billboardMaterial(sprites.trees[0].map, 0xc6d98a);
   const quad = spriteQuad();
   const volumeGeo = volumeGeometry();
   const trunkGeo = new CylinderGeometry(0.16, 0.3, 2.3, 6);
@@ -110,7 +110,7 @@ export function createFoliage(library: Library, sprites: FoliageSprites): {
     const spot = shrubSpots[i];
     dummy.position.set(spot.x, spot.y, spot.z);
     dummy.rotation.set(0, 0, 0);
-    dummy.scale.set(sprites.grass.width * spot.scale * 2.1, sprites.grass.height * spot.scale * 1.8, 1);
+    dummy.scale.set(sprites.trees[0].width * spot.scale * 0.45, sprites.trees[0].height * spot.scale * 0.45, 1);
     dummy.updateMatrix();
     shrubs.setMatrixAt(i, dummy.matrix);
   }
@@ -119,7 +119,7 @@ export function createFoliage(library: Library, sprites: FoliageSprites): {
   shrubs.frustumCulled = false;
 
   const blades = placeGrass();
-  const grass = new InstancedMesh(quad, grassMat, blades.length);
+  const grass = new InstancedMesh(quad, grassMat, Math.max(1, blades.length));
   for (let i = 0; i < blades.length; i += 1) {
     const blade = blades[i];
     dummy.position.set(blade.x, blade.y, blade.z);
@@ -130,6 +130,7 @@ export function createFoliage(library: Library, sprites: FoliageSprites): {
     color.setRGB(0.9 + blade.hue, 0.98, 0.86);
     grass.setColorAt(i, color);
   }
+  grass.count = blades.length;
   grass.receiveShadow = false;
   grass.castShadow = false;
   grass.frustumCulled = false;
@@ -266,32 +267,5 @@ function placeWheat(): Spot[] {
 }
 
 function placeGrass(): Spot[] {
-  const rand = mulberry32(41);
-  const home = settlement();
-  const plots = crops();
-  const spots: Spot[] = [];
-  for (let i = 0; i < 2400 && spots.length < 140; i += 1) {
-    const px = home.x - 42 + rand() * 74;
-    const pz = home.z - 38 + rand() * 68;
-    const y = computeHeight(px, pz);
-    if (y < WATER_Y + 0.4 || slopeAt(px, pz) > 0.55) continue;
-    if (inCrop(px, pz) || inClearing(px, pz)) continue;
-    const [grass, dirt] = splatWeights(px, pz);
-    if (grass < 0.5 || dirt > 0.35) continue;
-    const nearCrop = plots.some((plot) => {
-      const distance = Math.hypot(px - plot.x, pz - plot.z);
-      return distance < plot.hx + 4 && distance > plot.hx - 0.4;
-    });
-    if (!nearCrop && rand() > 0.12) continue;
-    spots.push({
-      x: px,
-      y: y + 0.02,
-      z: pz,
-      rot: rand() * Math.PI,
-      scale: 0.85 + rand() * 0.45,
-      wide: 1,
-      hue: (rand() - 0.5) * 0.08,
-    });
-  }
-  return spots;
+  return [];
 }

@@ -134,8 +134,8 @@ for (int i = 0; i < 2; i++) {
   float mask = 1.0 - smoothstep(0.25, 1.2, max(cropD.x - uCrop[i].z, cropD.y - uCrop[i].w));
   crop = max(crop, mask);
 }
-float furrow = 0.8 + 0.2 * sin((vWorld.x * 0.35 + vWorld.z) * 9.0);
-meadow = mix(meadow, vec3(0.68, 0.48, 0.08) * furrow, crop);
+float furrow = 0.78 + 0.22 * sin((vWorld.x * 0.35 + vWorld.z) * 9.0);
+meadow = mix(meadow, vec3(0.82, 0.58, 0.08) * furrow, crop);
 float mottled = texture2D(uCloud, vWorld.xz * 0.085 + vec2(2.2, 8.0)).r;
 float hay = texture2D(uCloud, vWorld.xz * 0.21 + vec2(5.4, 1.3)).r;
 meadow = mix(meadow, meadow * vec3(0.68, 0.84, 0.5), smoothstep(0.46, 0.82, mottled) * (1.0 - crop) * 0.55);
