@@ -108,26 +108,42 @@ function cliffGeometry(): BufferGeometry {
       const y1a = bot1 + (top1 - bot1) * t0;
       const y1b = bot1 + (top1 - bot1) * t1;
       const lip = band === bands - 1;
-      const shade = (band % 2 === 0 ? 0.48 : 1.05) * (0.72 + t1 * 0.38);
+      const shade = (band % 2 === 0 ? 0.28 : 1.12) * (0.7 + t1 * 0.4);
       const tint = (z: number, y: number) => {
         if (lip && y > top0 - 1.4) return [0.45 * shade, 0.62 * shade, 0.28 * shade];
         const stain = noise2(z * 0.11, y * 0.2);
         return [0.72 * shade * (0.9 + stain * 0.2), 0.66 * shade, 0.55 * shade];
       };
-      const base = positions.length / 3;
-      const corners: Array<[number, number, number]> = [
+      const u0 = i * 0.62;
+      const pushQuad = (
+        corners: Array<[number, number, number]>,
+        colorAt: (z: number, y: number) => number[],
+        v0: number,
+        v1: number,
+      ) => {
+        const base = positions.length / 3;
+        for (const [x, y, z] of corners) {
+          positions.push(x, y, z);
+          colors.push(...colorAt(z, y));
+        }
+        uvs.push(u0, v0, u0 + 0.62, v0, u0 + 0.62, v1, u0, v1);
+        indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      };
+      pushQuad([
         [x0 + run0 + wobbleBottom, y0a, z0],
         [x1 + run0 + wobbleBottom1, y1a, z1],
         [x1 + run1 + wobbleTop1, y1b, z1],
         [x0 + run1 + wobbleTop, y0b, z0],
-      ];
-      for (const [x, y, z] of corners) {
-        positions.push(x, y, z);
-        colors.push(...tint(z, y));
+      ], tint, t0 * 2.4, t1 * 2.4);
+      if (band % 2 === 1) {
+        const lipX = 2.3;
+        pushQuad([
+          [x0 + run0 + wobbleBottom, y0a, z0],
+          [x1 + run0 + wobbleBottom1, y1a, z1],
+          [x1 + run0 + wobbleBottom1 + lipX, y1a + 0.05, z1],
+          [x0 + run0 + wobbleBottom + lipX, y0a + 0.05, z0],
+        ], () => [0.95, 0.86, 0.68], 0.1, 0.45);
       }
-      const u0 = i * 0.62;
-      uvs.push(u0, t0 * 2.4, u0 + 0.62, t0 * 2.4, u0 + 0.62, t1 * 2.4, u0, t1 * 2.4);
-      indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
     }
   }
 
