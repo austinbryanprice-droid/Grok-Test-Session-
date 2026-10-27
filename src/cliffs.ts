@@ -108,11 +108,11 @@ function cliffGeometry(): BufferGeometry {
       const y1a = bot1 + (top1 - bot1) * t0;
       const y1b = bot1 + (top1 - bot1) * t1;
       const lip = band === bands - 1;
-      const shade = (band % 2 === 0 ? 0.28 : 1.12) * (0.7 + t1 * 0.4);
+      const shade = (band % 2 === 0 ? 0.58 : 0.86) * (0.82 + t1 * 0.22);
       const tint = (z: number, y: number) => {
-        if (lip && y > top0 - 1.4) return [0.45 * shade, 0.62 * shade, 0.28 * shade];
+        if (lip && y > top0 - 1.4) return [0.42 * shade, 0.52 * shade, 0.26 * shade];
         const stain = noise2(z * 0.11, y * 0.2);
-        return [0.72 * shade * (0.9 + stain * 0.2), 0.66 * shade, 0.55 * shade];
+        return [0.62 * shade * (0.9 + stain * 0.18), 0.56 * shade, 0.46 * shade];
       };
       const u0 = i * 0.62;
       const pushQuad = (
@@ -142,7 +142,7 @@ function cliffGeometry(): BufferGeometry {
           [x1 + run0 + wobbleBottom1, y1a, z1],
           [x1 + run0 + wobbleBottom1 + lipX, y1a + 0.05, z1],
           [x0 + run0 + wobbleBottom + lipX, y0a + 0.05, z0],
-        ], () => [0.95, 0.86, 0.68], 0.1, 0.45);
+        ], () => [0.7, 0.62, 0.5], 0.1, 0.45);
       }
     }
   }
