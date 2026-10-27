@@ -10,9 +10,9 @@ export function lit(params: MeshStandardMaterialParameters, hook?: Hook): MeshSt
   return material;
 }
 
-export function applyCSM(csm: { setupMaterial: (material: Material) => void }): void {
+export function applyMaterials(csm?: { setupMaterial: (material: Material) => void }): void {
   for (const entry of entries) {
-    csm.setupMaterial(entry.material);
+    csm?.setupMaterial(entry.material);
     entry.hook?.(entry.material);
   }
 }

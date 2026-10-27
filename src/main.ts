@@ -1,21 +1,23 @@
 import {
   ACESFilmicToneMapping,
-  PCFSoftShadowMap,
+  DirectionalLight,
+  PCFShadowMap,
   PMREMGenerator,
   Scene,
-  ShaderChunk,
   SRGBColorSpace,
+  Vector3,
   WebGLRenderer,
 } from 'three';
-import { CSM } from 'three/addons/csm/CSM.js';
 import { createAtmosphere, cloudTime } from './atmosphere';
 import { createSettlement } from './buildings';
 import { Rig } from './camera';
 import { createCliffs } from './cliffs';
 import { createFoliage, foliageTime } from './foliage';
-import { applyCSM } from './lit';
+import { bakeFoliageSprites } from './sprites';
+import { applyMaterials } from './lit';
 import { CLOUD_SUN_COLOR, LIGHT_DIR, SUN_COLOR } from './look';
-import { smoothstep, noise2 } from './noise';
+import { settlement as homeSite } from './field';
+import { noise2, smoothstep } from './noise';
 import { createPipeline } from './post';
 import { createTerrain, terrainTime } from './terrain';
 import { createLibrary } from './textures';
@@ -32,12 +34,6 @@ scene.add(cliffs.cliff);
 scene.add(cliffs.rocks);
 const river = createRiver(library);
 scene.add(river.mesh);
-const foliage = createFoliage(library);
-scene.add(foliage.trunks);
-scene.add(foliage.canopies);
-scene.add(foliage.shrubs);
-scene.add(foliage.grass);
-scene.add(foliage.wheat);
 const settlement = createSettlement(library);
 scene.add(settlement.object);
 const atmosphere = createAtmosphere(scene);
@@ -46,33 +42,25 @@ const rig = new Rig();
 rig.frameFar();
 rig.bind(canvas);
 
-const csm = new CSM({
-  camera: rig.camera,
-  parent: scene,
-  cascades: 3,
-  maxFar: 190,
-  mode: 'practical',
-  shadowMapSize: 2048,
-  shadowBias: -0.00012,
-  lightDirection: LIGHT_DIR.clone(),
-  lightIntensity: 2.15,
-  lightNear: 1,
-  lightFar: 800,
-  lightMargin: 120,
-});
-csm.fade = false;
-ShaderChunk.lights_fragment_begin = ShaderChunk.lights_fragment_begin.replaceAll(
-  'getPointShadow( pointShadowMap[ i ], pointLightShadow.shadowMapSize, pointLightShadow.shadowBias,',
-  'getPointShadow( pointShadowMap[ i ], pointLightShadow.shadowMapSize, pointLightShadow.shadowIntensity, pointLightShadow.shadowBias,',
-);
-for (const light of csm.lights) {
-  light.color.copy(SUN_COLOR);
-  light.shadow.normalBias = 0.02;
-  light.shadow.radius = 0.45;
-  light.shadow.mapSize.set(2048, 2048);
-}
-applyCSM(csm);
-csm.updateFrustums();
+const home = homeSite();
+const sun = new DirectionalLight(SUN_COLOR, 2.5);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.bias = -0.00045;
+sun.shadow.normalBias = 0.012;
+sun.shadow.radius = 1;
+const shadowCamera = sun.shadow.camera;
+shadowCamera.near = 4;
+shadowCamera.far = 180;
+shadowCamera.left = -70;
+shadowCamera.right = 70;
+shadowCamera.top = 70;
+shadowCamera.bottom = -70;
+shadowCamera.updateProjectionMatrix();
+sun.position.copy(LIGHT_DIR).multiplyScalar(-90).add(new Vector3(home.x, home.y + 4, home.z));
+sun.target.position.set(home.x, home.y + 2, home.z);
+scene.add(sun);
+scene.add(sun.target);
 
 const renderer = new WebGLRenderer({
   canvas,
@@ -85,8 +73,17 @@ renderer.outputColorSpace = SRGBColorSpace;
 renderer.toneMapping = ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = PCFSoftShadowMap;
+renderer.shadowMap.type = PCFShadowMap;
 library.setAnisotropy(renderer.capabilities.getMaxAnisotropy());
+const sprites = bakeFoliageSprites(renderer);
+const foliage = createFoliage(library, sprites);
+scene.add(foliage.trunks);
+scene.add(foliage.canopies);
+scene.add(foliage.volumes);
+scene.add(foliage.shrubs);
+scene.add(foliage.grass);
+scene.add(foliage.wheat);
+applyMaterials();
 
 const pmrem = new PMREMGenerator(renderer);
 const probe = new Scene();
@@ -107,7 +104,6 @@ const resize = () => {
   rig.camera.aspect = width / height;
   rig.camera.updateProjectionMatrix();
   pipeline.resize(width, height, pixelRatio);
-  csm.updateFrustums();
 };
 resize();
 window.addEventListener('resize', resize);
@@ -115,8 +111,6 @@ window.addEventListener('resize', resize);
 window.__frame = (name) => {
   if (name === 'near') rig.frameNear();
   else rig.frameFar();
-  csm.updateFrustums();
-  csm.update();
 };
 window.__debug = () => ({
   azimuth: rig.azimuth,
@@ -139,13 +133,10 @@ function tick() {
     settlement.update(time);
 
     const shade = smoothstep(0.32, 0.74, noise2(time * 0.05, 2.4));
-    for (const light of csm.lights) {
-      light.color.copy(SUN_COLOR).lerp(CLOUD_SUN_COLOR, 1 - shade);
-      light.intensity = 2.15 * (0.82 + 0.18 * shade);
-    }
+    sun.color.copy(SUN_COLOR).lerp(CLOUD_SUN_COLOR, 1 - shade);
+    sun.intensity = 2.5 * (0.84 + 0.16 * shade);
 
     rig.apply();
-    csm.update();
     river.renderReflection(renderer, scene, rig.camera);
     if (viewParams.has('plain')) renderer.render(scene, rig.camera);
     else pipeline.composer.render();
