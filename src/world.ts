@@ -52,6 +52,7 @@ export type BuiltWorld = {
   roof: Mesh;
   roofMaterial: MeshStandardMaterial;
   floorY: number;
+  hutBounds: { x0: number; x1: number; z0: number; z1: number };
   inside: { x: number; z: number };
   playerStart: { x: number; y: number; z: number };
   heightTex: DataTexture;
@@ -62,15 +63,15 @@ export type BuiltWorld = {
 };
 
 function columnHeight(x: number, z: number): number {
-  const continental = fbm(x * 0.018, z * 0.018, 5);
-  const detail = fbm(x * 0.07 + 4, z * 0.07, 3);
-  let h = 9.2 + continental * 4.5 + detail * 1.2;
+  const continental = fbm(x * 0.02, z * 0.02, 5);
+  const detail = fbm(x * 0.08 + 4, z * 0.08, 3);
+  let h = 10 + continental * 3.2 + detail * 1.1;
   const dx = x - 62;
-  const dz = z - 52;
-  h -= Math.exp(-(dx * dx + dz * dz) / 340) * 9.5;
-  const sx = x - 70;
-  const sz = z - 86;
-  h += Math.exp(-(sx * sx + sz * sz) / 220) * 11;
+  const dz = z - 36;
+  h -= Math.exp(-(dx * dx + dz * dz) / 95) * 8;
+  const sx = x - 68;
+  const sz = z - 54;
+  h += Math.exp(-(sx * sx + sz * sz) / 80) * 9;
   return Math.max(2, Math.min(WORLD_Y - 2, h));
 }
 
@@ -117,25 +118,27 @@ export function createWorld(material: MeshStandardMaterial): BuiltWorld {
     }
   }
 
-  let hx = 58;
-  let hz = 28;
+  let shoreX = 62;
+  let shoreZ = 24;
   let floorY = 9;
   let best = -1;
-  for (let z = 22; z <= 34; z += 1) {
-    for (let x = 52; x <= 70; x += 1) {
+  for (let z = 16; z <= 30; z += 1) {
+    for (let x = 54; x <= 70; x += 1) {
       const s = ground[z * WORLD_X + x];
-      const ahead = ground[Math.min(WORLD_Z - 1, z + 8) * WORLD_X + x];
-      if (s >= 8 && s <= 10 && ahead <= 7) {
-        const score = 4 - Math.abs(s - 9);
+      const ahead = ground[Math.min(WORLD_Z - 1, z + 6) * WORLD_X + x];
+      if (s >= 8 && s <= 11 && ahead <= 7) {
+        const score = 5 - Math.abs(x - 62) * 0.15 - Math.abs(s - 9);
         if (score > best) {
           best = score;
-          hx = x;
-          hz = z;
+          shoreX = x;
+          shoreZ = z;
           floorY = s;
         }
       }
     }
   }
+  const hx = shoreX - 9;
+  const hz = shoreZ;
 
   const fillColumn = (x: number, z: number, surface: number, top: number) => {
     for (let y = 0; y < WORLD_Y; y += 1) set(x, y, z, AIR);
@@ -191,14 +194,13 @@ export function createWorld(material: MeshStandardMaterial): BuiltWorld {
 
   const rand = mulberry32(1337);
   const trees: Array<{ x: number; z: number }> = [];
-  for (let attempt = 0; attempt < 500 && trees.length < 20; attempt += 1) {
-    const x = 8 + Math.floor(rand() * (WORLD_X - 16));
-    const z = 8 + Math.floor(rand() * (WORLD_Z - 16));
+  const placeTree = (x: number, z: number) => {
     const surface = ground[z * WORLD_X + x];
-    if (surface < 8 || surface > 18) continue;
-    if (get(x, surface - 1, z) !== GRASS) continue;
-    if (Math.abs(x - hx) < 10 && Math.abs(z - hz) < 8) continue;
-    if (trees.some((t) => (t.x - x) ** 2 + (t.z - z) ** 2 < 49)) continue;
+    if (surface < 8 || surface > 20) return false;
+    if (get(x, surface - 1, z) !== GRASS && get(x, surface - 1, z) !== DIRT) return false;
+    if (x >= hx - 1 && x <= hx + 8 && z >= hz - 2 && z <= hz + 6) return false;
+    if (Math.abs(x - shoreX) < 2 && Math.abs(z - shoreZ) < 2) return false;
+    if (trees.some((t) => (t.x - x) ** 2 + (t.z - z) ** 2 < 36)) return false;
     const height = 4 + Math.floor(rand() * 3);
     const tint = Math.floor(rand() * 3);
     for (let y = 0; y < height; y += 1) set(x, surface + y, z, WOOD);
@@ -222,6 +224,27 @@ export function createWorld(material: MeshStandardMaterial): BuiltWorld {
       }
     }
     trees.push({ x, z });
+    return true;
+  };
+  for (const [dx, dz] of [
+    [5, 1],
+    [7, -2],
+    [4, -4],
+    [8, 2],
+    [6, -5],
+    [9, 0],
+    [3, 4],
+    [-6, -4],
+  ] as Array<[number, number]>) {
+    if (trees.length >= 8) break;
+    const x = shoreX + dx;
+    const z = shoreZ + dz;
+    if (inBounds(x, 0, z)) placeTree(x, z);
+  }
+  for (let attempt = 0; attempt < 500 && trees.length < 20; attempt += 1) {
+    const x = 8 + Math.floor(rand() * (WORLD_X - 16));
+    const z = 8 + Math.floor(rand() * (WORLD_Z - 16));
+    placeTree(x, z);
   }
 
   for (let i = 0; i < 36; i += 1) {
@@ -348,8 +371,7 @@ export function createWorld(material: MeshStandardMaterial): BuiltWorld {
     return false;
   };
 
-  const start = { x: hx + 3.5, y: 0, z: hz - 3.4 };
-  start.y = groundY(start.x, start.z);
+  const start = { x: shoreX + 0.5, y: floorY, z: shoreZ + 0.5 };
   return {
     terrain,
     foundation,
@@ -357,6 +379,7 @@ export function createWorld(material: MeshStandardMaterial): BuiltWorld {
     roof,
     roofMaterial,
     floorY,
+    hutBounds: { x0: hx, x1: hx + 6, z0: hz, z1: hz + 4 },
     inside: { x: hx + 3.5, z: hz + 2.2 },
     playerStart: start,
     heightTex,

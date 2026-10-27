@@ -53,12 +53,12 @@ function crossGeometry(height: number, width: number, tile: number): BufferGeome
 
 function swayMaterial(map: MeshStandardMaterial['map'], discardPetal: boolean): MeshStandardMaterial {
   const material = new MeshStandardMaterial({
-    map: map ?? undefined,
     roughness: 0.85,
     metalness: 0,
     vertexColors: true,
     side: DoubleSide,
   });
+  if (map) material.map = map;
   material.toneMapped = false;
   material.customProgramCacheKey = () => (discardPetal ? 'petal' : 'grass');
   material.onBeforeCompile = (shader) => {
@@ -111,7 +111,7 @@ export function createFoliage(
       const g = 0.78 + rand() * 0.35;
       const color = flower
         ? new Color().setHSL(rand() > 0.5 ? 0.1 + rand() * 0.08 : 0.86 + rand() * 0.08, 0.65, 0.62)
-        : new Color(0.62 * g, g, 0.32 * g);
+        : new Color(0.78 * g, 1.05 * g, 0.38 * g);
       spots.push({
         x: x + 0.2 + rand() * 0.6,
         y,

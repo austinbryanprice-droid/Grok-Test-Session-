@@ -88,8 +88,8 @@ function cornerAO(x: number, y: number, z: number, n: Vec3, c: Vec3, solid: Soli
   return 3 - (Number(s1) + Number(s2) + Number(sc));
 }
 
-function shade(ao: number, variation: number, tint: Vec3): Vec3 {
-  const a = 0.28 + 0.72 * (ao / 3);
+function shade(ao: number, variation: number, tint: Vec3, boost = 1): Vec3 {
+  const a = (0.28 + 0.72 * (ao / 3)) * boost;
   return [a * variation * tint[0], a * variation * tint[1], a * variation * tint[2]];
 }
 
@@ -139,7 +139,7 @@ export function appendExposedFaces(
     };
     const uv = (u: number, v: number): [number, number] => atlasUV(tile, u, v, rot);
     const ao = face.c.map((c) => cornerAO(x, y, z, n, c, solid));
-    const col = (a: number): Vec3 => shade(a, variation, tint);
+    const col = (a: number, boost = 1): Vec3 => shade(a, variation, tint, boost);
 
     builder.quad(
       [at(b, b, 0), at(1 - b, b, 0), at(1 - b, 1 - b, 0), at(b, 1 - b, 0)],
@@ -167,7 +167,7 @@ export function appendExposedFaces(
         [at(e.u0, e.v0, b), at(e.u1, e.v1, b), at(iu1, iv1, 0), at(iu0, iv0, 0)],
         en,
         [uv(e.u0, e.v0), uv(e.u1, e.v1), uv(iu1, iv1), uv(iu0, iv0)],
-        [col(e.a0), col(e.a1), col(e.a1), col(e.a0)],
+        [col(e.a0, 1.28), col(e.a1, 1.28), col(e.a1, 1.28), col(e.a0, 1.28)],
         false,
       );
     }
@@ -182,7 +182,7 @@ export function appendExposedFaces(
       const du = c.u === 0 ? b : -b;
       const dv = c.v === 0 ? b : -b;
       const cn = norm(n[0] + c.outU[0] + c.outV[0], n[1] + c.outU[1] + c.outV[1], n[2] + c.outU[2] + c.outV[2]);
-      const ccol = col(c.a);
+      const ccol = col(c.a, 1.18);
       builder.quad(
         [at(c.u, c.v, b), at(c.u + du, c.v, b), at(c.u + du, c.v + dv, 0), at(c.u, c.v + dv, b)],
         cn,

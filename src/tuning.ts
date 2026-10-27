@@ -9,7 +9,7 @@ export const tuning = {
   sunAzimuthDeg: 132,
   shadowMapSize: 4096,
   shadowBias: -0.0005,
-  shadowNormalBias: 0.035,
+  shadowNormalBias: 0.08,
   shadowExtent: 42,
   hemiSky: 0x8fb8ff,
   hemiGround: 0x5a4632,

@@ -256,8 +256,16 @@ function boot(): void {
       raycaster.near = 0;
       raycaster.far = dist;
       const hit = new Set(raycaster.intersectObjects(fadeables.map((piece) => piece.mesh), false).map((item) => item.object));
+      const px = player.group.position.x;
+      const pz = player.group.position.z;
+      const underRoof =
+        px > world.hutBounds.x0 - 0.4 &&
+        px < world.hutBounds.x1 + 1.4 &&
+        pz > world.hutBounds.z0 - 0.4 &&
+        pz < world.hutBounds.z1 + 1.4;
       for (const piece of fadeables) {
-        const target = hit.has(piece.mesh) ? 0.12 : 1;
+        const roofBlocks = piece.mesh === world.roof && underRoof;
+        const target = hit.has(piece.mesh) || roofBlocks ? 0.12 : 1;
         piece.material.opacity += (target - piece.material.opacity) * 0.25;
         piece.material.depthWrite = piece.material.opacity > 0.85;
       }

@@ -22,7 +22,8 @@ const logs = [];
 page.on('console', (msg) => logs.push(`${msg.type()}: ${msg.text()}`));
 page.on('pageerror', (error) => logs.push(`pageerror: ${error.message}`));
 
-await page.goto('http://127.0.0.1:5173/', { waitUntil: 'networkidle0', timeout: 120000 });
+const port = process.env.PORT || '5173';
+await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle0', timeout: 120000 });
 await page.waitForFunction(() => window.__ready === true, { timeout: 120000 });
 await new Promise((resolve) => setTimeout(resolve, 700));
 await page.screenshot({ path: '/opt/cursor/artifacts/topdown.png' });

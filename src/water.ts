@@ -50,25 +50,28 @@ const fragment = /* glsl */ `
     vec2 reflUv = screenUv + normal.xz * 0.035;
     vec3 refl = texture2D(uReflection, reflUv).rgb;
 
-    vec3 deep = vec3(0.04, 0.16, 0.2);
-    vec3 shallow = vec3(0.22, 0.48, 0.4);
+    vec3 deep = vec3(0.03, 0.18, 0.26);
+    vec3 shallow = vec3(0.16, 0.55, 0.48);
     vec3 waterCol = mix(shallow, deep, smoothstep(0.15, 2.4, depthDiff));
-    float reflectMix = clamp(0.38 + fres * 0.55, 0.0, 0.86);
+    vec3 skyCol = mix(uFogColor, vec3(0.16, 0.32, 0.58), clamp(screenUv.y, 0.0, 1.0));
+    refl = mix(skyCol, refl, 0.72);
+    float reflectMix = clamp(0.34 + fres * 0.5, 0.0, 0.8);
     vec3 col = mix(waterCol, refl, reflectMix);
 
     vec3 halfDir = normalize(normalize(uSunDir) + viewDir);
     float spec = pow(max(dot(normal, halfDir), 0.0), 80.0);
     col += vec3(1.0, 0.82, 0.55) * spec * 0.85;
 
-    float foamNoise = 0.65 + 0.35 * sin(vWorld.x * 5.5 + vWorld.z * 4.2 + uTime * 1.8);
-    float foam = smoothstep(0.62, 0.05, depthDiff) * foamNoise;
-    col = mix(col, vec3(0.86, 0.93, 0.9), foam);
+    float shore = smoothstep(0.42, 0.02, depthDiff) * smoothstep(-0.02, 0.08, depthDiff);
+    float foamNoise = 0.6 + 0.4 * sin(vWorld.x * 16.0 + vWorld.z * 13.0 + uTime * 1.6);
+    float foam = shore * foamNoise;
+    col = mix(col, vec3(0.9, 0.96, 0.93), foam);
 
     float dist = distance(cameraPosition, vWorld);
     float fogF = 1.0 - exp(-uFogDensity * uFogDensity * dist * dist);
     col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
 
-    float alpha = mix(0.78, 0.92, fres) * smoothstep(-0.04, 0.12, depthDiff);
+    float alpha = mix(0.62, 0.96, smoothstep(0.05, 0.8, depthDiff)) * smoothstep(-0.04, 0.1, depthDiff);
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -101,9 +104,9 @@ export function createWater(heightTex: DataTexture, normalTex: Texture): {
     transparent: true,
     depthWrite: false,
   });
-  const mesh = new Mesh(new PlaneGeometry(56, 52, 1, 1), material);
+  const mesh = new Mesh(new PlaneGeometry(48, 36, 1, 1), material);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(62, tuning.waterY, 54);
+  mesh.position.set(62, tuning.waterY, 36);
   mesh.renderOrder = 2;
   return {
     mesh,
