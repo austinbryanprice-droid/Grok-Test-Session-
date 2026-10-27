@@ -9,7 +9,7 @@ import {
   Object3D,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { WORLD, computeHeight, crops, inClearing, inCrop, riverCenterX, settlement, slopeAt, splatWeights, WATER_Y } from './field';
+import { WORLD, cliffEdgeX, computeHeight, crops, inClearing, inCrop, riverCenterX, settlement, slopeAt, splatWeights, WATER_Y } from './field';
 import { lit } from './lit';
 import { mulberry32 } from './noise';
 import { billboardMaterial, spriteQuad, type FoliageSprites } from './sprites';
@@ -210,6 +210,10 @@ function placeTrees(): Spot[] {
     for (let i = 0; i < count; i += 1) {
       add(gx + (rand() - 0.5) * 9, gz + (rand() - 0.5) * 8, 1.05 + rand() * 0.35);
     }
+  }
+  for (let i = 0; i < 14; i += 1) {
+    const z = home.z - 22 + i * 3.2;
+    add(cliffEdgeX(z) - 3.4 + (rand() - 0.5) * 1.6, z, 0.9 + rand() * 0.25);
   }
   return spots;
 }
