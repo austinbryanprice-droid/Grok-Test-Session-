@@ -136,7 +136,7 @@ function cliffGeometry(): BufferGeometry {
         [x0 + run1 + wobbleTop, y0b, z0],
       ], tint, t0 * 2.4, t1 * 2.4);
       if (band % 2 === 1) {
-        const lipX = 2.3;
+        const lipX = 1.8;
         pushQuad([
           [x0 + run0 + wobbleBottom, y0a, z0],
           [x1 + run0 + wobbleBottom1, y1a, z1],

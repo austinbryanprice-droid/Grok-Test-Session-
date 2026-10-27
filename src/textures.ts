@@ -7,7 +7,7 @@ import {
   SRGBColorSpace,
   Texture,
 } from 'three';
-import { computeHeight, splatWeights, WATER_Y, WORLD } from './field';
+import { computeHeight, riverCenterX, splatWeights, WATER_Y, WORLD } from './field';
 import { clamp, lerp, smoothstep, tileFbm, tileNoise } from './noise';
 
 export type Surface = {
@@ -259,11 +259,12 @@ function paintSplat(): { splat: HTMLCanvasElement; mask: HTMLCanvasElement } {
       splatImg.data[i + 1] = d * 255;
       splatImg.data[i + 2] = m * 255;
       splatImg.data[i + 3] = r * 255;
-      const depth = clamp((WATER_Y - computeHeight(wx, z)) / 1.35, 0, 1);
+      const depth = clamp((WATER_Y - computeHeight(wx, z)) / 1.45, 0, 1);
       const foam = smoothstep(0.02, 0.16, depth) * (1 - smoothstep(0.18, 0.55, depth));
+      const center = 1 - clamp(Math.abs(wx - riverCenterX(z)) / 16, 0, 1);
       maskImg.data[i] = depth * 255;
       maskImg.data[i + 1] = foam * 255;
-      maskImg.data[i + 2] = 0;
+      maskImg.data[i + 2] = center * 255;
       maskImg.data[i + 3] = 255;
     }
   }
