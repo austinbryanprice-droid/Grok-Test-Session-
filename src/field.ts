@@ -76,9 +76,9 @@ export function splatWeights(x: number, z: number): [number, number, number, num
   const bankX = riverCenterX(home.z) + 6.5;
   const path = 1 - smoothstep(2.2, 4.6, distToSegment(x, z, doorX, doorZ, bankX, home.z - 3));
   const track = 1 - smoothstep(1.7, 3.5, distToSegment(x, z, home.x - 5, home.z - 3, home.x - 16, home.z - 32));
-  const yard = 1 - smoothstep(2.4, 7.2, Math.hypot(x - doorX, z - doorZ));
+  const yard = 1 - smoothstep(3.2, 9.5, Math.hypot(x - doorX, z - doorZ));
   const patch = smoothstep(0.58, 0.8, fbm(x * 0.07, z * 0.07));
-  let dirt = (1 - rock) * (1 - mud) * Math.max(path, track * 0.92, yard * 0.55, smoothstep(0.34, 0.55, slope) * 0.25);
+  let dirt = (1 - rock) * (1 - mud) * Math.max(path, track * 0.92, yard * 0.9, smoothstep(0.34, 0.55, slope) * 0.25);
   dirt = Math.min(1, dirt + patch * 0.1);
   const grass = Math.max(0, (1 - rock) * (1 - mud) * (1 - dirt));
   const sum = grass + dirt + mud + rock || 1;
