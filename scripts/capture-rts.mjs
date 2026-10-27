@@ -5,7 +5,7 @@ import { chromium } from 'playwright-core';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(root, 'screenshots', 'rts');
-const shots = ['wide', 'bunker', 'tower'];
+const shots = ['wide', 'bunker', 'tower', 'unit'];
 const base = process.env.LOOK_URL || 'http://127.0.0.1:5173/';
 
 const browser = await chromium.launch({
