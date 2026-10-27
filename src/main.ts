@@ -31,10 +31,10 @@ const GradeShader = {
     void main() {
       vec3 col = texture2D(tDiffuse, vUv).rgb;
       float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
-      col = mix(vec3(luma), col, 0.94);
-      float split = smoothstep(0.08, 0.72, luma);
-      vec3 tint = mix(vec3(0.96, 0.98, 1.04), vec3(1.04, 1.01, 0.97), split);
-      col = mix(col, col * tint, 0.28);
+      col = mix(vec3(luma), col, 0.88);
+      float split = smoothstep(0.18, 0.7, luma);
+      vec3 tint = mix(vec3(0.94, 0.97, 1.03), vec3(1.04, 1.01, 0.96), split);
+      col = mix(col, col * tint, 0.55);
       gl_FragColor = vec4(col, 1.0);
     }
   `,
@@ -46,57 +46,128 @@ if (!canvas) throw new Error('Missing canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-renderer.setClearColor(0x8e99a6, 1);
+renderer.setClearColor(0x929a94, 1);
 
-const { scene, update } = createField();
-const camera = new THREE.PerspectiveCamera(38, 1, 0.4, 980);
+const { scene, terrain, unit, update, focusShadow } = createField();
+const camera = new THREE.PerspectiveCamera(46, 1, 0.4, 980);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(1280, 720), 0.06, 0.35, 0.92);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1280, 720), 0.045, 0.4, 0.94);
 composer.addPass(bloom);
 composer.addPass(new ShaderPass(GradeShader));
 composer.addPass(new OutputPass());
 
+const ring = new THREE.Mesh(
+  new THREE.TorusGeometry(3.4, 0.08, 8, 28),
+  new THREE.MeshBasicMaterial({ color: 0xe6d56a }),
+);
+ring.rotation.x = -Math.PI / 2;
+ring.position.y = 0.22;
+ring.visible = false;
+ring.name = 'selection';
+unit.add(ring);
+
 const target = new THREE.Vector3(0, 0, 6);
-let theta = -0.38;
-let phi = 1.27;
-let radius = 70;
+let theta = -0.55;
+let phi = 0.7;
+let radius = 86;
 const params = new URLSearchParams(location.search);
 const shot = params.get('shot');
 if (shot === 'bunker') {
   target.set(BUNKER.x, 0, BUNKER.z);
-  theta = -0.35;
-  phi = 1.24;
-  radius = 26;
+  theta = -0.4;
+  phi = 0.78;
+  radius = 32;
 } else if (shot === 'tower') {
   target.set(TOWER.x, 0, TOWER.z);
-  theta = -0.9;
-  phi = 1.38;
-  radius = 32;
+  theta = -0.95;
+  phi = 0.76;
+  radius = 36;
 } else if (shot === 'unit') {
   target.set(UNIT.x, 0, UNIT.z);
-  theta = -1.05;
-  phi = 1.3;
-  radius = 18;
+  theta = 0.4;
+  phi = 0.82;
+  radius = 22;
 } else {
-  target.set(0, 0, 6);
-  theta = -0.38;
-  phi = 1.27;
-  radius = 70;
+  target.set(0, 0, 8);
+  theta = -0.55;
+  phi = 0.7;
+  radius = 86;
 }
 
 const keys = new Set<string>();
 let dragging = false;
+let pointerDown = false;
+let downX = 0;
+let downY = 0;
 const orbiting = !shot;
+let selected = false;
+let moveTarget: THREE.Vector3 | null = null;
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const statusEl = document.querySelector<HTMLElement>('#status');
+
+function setStatus(text: string): void {
+  if (statusEl) statusEl.textContent = text;
+}
+
+if (shot) document.getElementById('hud')?.remove();
+
+function belongsToUnit(object: THREE.Object3D): boolean {
+  let current: THREE.Object3D | null = object;
+  while (current) {
+    if (current === unit) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function onPointerSelect(clientX: number, clientY: number): void {
+  const rect = canvas!.getBoundingClientRect();
+  ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  ndc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects([terrain, unit], true);
+  if (!hits.length) return;
+  const hit = hits[0];
+  if (belongsToUnit(hit.object)) {
+    selected = true;
+    ring.visible = true;
+    moveTarget = null;
+    setStatus('Selected. Left-click the ground to move.');
+    return;
+  }
+  if (selected && hit.object === terrain) {
+    moveTarget = hit.point.clone();
+    setStatus('Moving');
+  }
+}
+
+function stepUnit(dt: number): void {
+  if (!selected || !moveTarget) return;
+  const dx = moveTarget.x - unit.position.x;
+  const dz = moveTarget.z - unit.position.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist < 0.45) {
+    moveTarget = null;
+    setStatus('Arrived');
+    return;
+  }
+  const step = Math.min(dist, 9 * dt);
+  const x = unit.position.x + (dx / dist) * step;
+  const z = unit.position.z + (dz / dist) * step;
+  unit.position.set(x, hillHeight(x, z), z);
+  unit.rotation.y = Math.atan2(dx, dz);
+}
 
 function applyCamera(): void {
   target.x = THREE.MathUtils.clamp(target.x, -220, 220);
   target.z = THREE.MathUtils.clamp(target.z, -220, 220);
-  const lift = shot === 'tower' ? 6 : shot === 'unit' ? 1.6 : 2.4;
+  const lift = shot === 'tower' ? 8 : shot === 'unit' ? 1.8 : 2.2;
   target.y = hillHeight(target.x, target.z) + lift;
   const sinPhi = Math.sin(phi);
   camera.position.set(
@@ -105,6 +176,7 @@ function applyCamera(): void {
     target.z + radius * sinPhi * Math.cos(theta),
   );
   camera.lookAt(target);
+  focusShadow(target.x, target.z);
 }
 
 function resize(): void {
@@ -121,22 +193,30 @@ window.addEventListener('resize', resize);
 window.addEventListener('keydown', (event) => keys.add(event.key.toLowerCase()));
 window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 canvas.addEventListener('pointerdown', (event) => {
-  if (!orbiting) return;
+  if (!orbiting || event.button !== 0) return;
   dragging = true;
+  pointerDown = true;
+  downX = event.clientX;
+  downY = event.clientY;
   canvas.setPointerCapture(event.pointerId);
 });
-window.addEventListener('pointerup', () => {
+window.addEventListener('pointerup', (event) => {
+  if (!pointerDown) return;
+  const moved = Math.hypot(event.clientX - downX, event.clientY - downY);
   dragging = false;
+  pointerDown = false;
+  if (orbiting && moved < 6) onPointerSelect(event.clientX, event.clientY);
 });
 window.addEventListener('pointermove', (event) => {
   if (!dragging || !orbiting) return;
   theta -= event.movementX * 0.005;
-  phi = THREE.MathUtils.clamp(phi + event.movementY * 0.003, 1.12, 1.46);
+  phi = THREE.MathUtils.clamp(phi + event.movementY * 0.003, 0.58, 1.05);
 });
 canvas.addEventListener('wheel', (event) => {
   if (!orbiting) return;
-  radius = THREE.MathUtils.clamp(radius + event.deltaY * 0.035, 12, 140);
-}, { passive: true });
+  event.preventDefault();
+  radius = THREE.MathUtils.clamp(radius + event.deltaY * 0.035, 16, 140);
+}, { passive: false });
 
 let last = performance.now();
 let smoothed = 16.7;
@@ -155,6 +235,7 @@ function frame(now: number): void {
     if (keys.has('d') || keys.has('arrowright')) target.addScaledVector(right, speed * dt);
     if (keys.has('a') || keys.has('arrowleft')) target.addScaledVector(right, -speed * dt);
   }
+  stepUnit(dt);
   applyCamera();
   update(now / 1000);
   composer.render();

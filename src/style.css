@@ -2,11 +2,33 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #6d7c8c;
+  background: #6e767c;
 }
 
 #view {
   display: block;
   width: 100vw;
   height: 100vh;
+}
+
+#hud {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  margin: 0;
+  color: #d7d2c8;
+  font: 13px/1.45 "Courier New", monospace;
+  background: rgba(18, 20, 18, 0.58);
+  border: 1px solid rgba(186, 180, 166, 0.35);
+  padding: 10px 12px;
+  pointer-events: none;
+}
+
+#hud p {
+  margin: 0;
+}
+
+#status {
+  margin-top: 8px;
+  color: #efe6b0;
 }

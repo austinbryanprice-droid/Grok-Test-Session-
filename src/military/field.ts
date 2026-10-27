@@ -7,21 +7,23 @@ const fine = makeNoise(21);
 const grit = makeNoise(28);
 const blot = makeNoise(33);
 
-const VALLEY = 0x24361c;
-const OLIVE = 0x466428;
-const RIDGE = 0x74844a;
-const MUD = 0x6a5438;
-const STONE = 0x6a655c;
-const FOG = 0x8e99a6;
-const HAZE = 0xd2dae2;
-const SUN = 0xf3e6d2;
+const VALLEY = 0x484538;
+const OLIVE = 0x5c624c;
+const RIDGE = 0x726c5c;
+const MUD = 0x634c3c;
+const STONE = 0x6a6458;
+const FOG = 0x929a94;
+const HAZE = 0xada594;
+const SUN = 0xd8cfba;
+const TREE = 0x3a4634;
+const TREE_FAR = 0x465044;
 
 function rawHeight(x: number, z: number): number {
   const large = broad(x * 0.0031, z * 0.0028);
   const middle = mid(x * 0.0085, z * 0.0078);
   const detail = fine(x * 0.019, z * 0.017);
   const grain = grit(x * 0.046, z * 0.043);
-  return (large - 0.46) * 26 + (middle - 0.5) * 12 + (detail - 0.5) * 4.2 + (grain - 0.5) * 1.1;
+  return (large - 0.46) * 16 + (middle - 0.5) * 15 + (detail - 0.5) * 6.2 + (grain - 0.5) * 1.5;
 }
 
 export const BUNKER = new THREE.Vector3(-20, 0, 12);
@@ -47,37 +49,46 @@ export function hillHeight(x: number, z: number): number {
 
 export interface Field {
   scene: THREE.Scene;
+  terrain: THREE.Mesh;
+  unit: THREE.Group;
   update: (time: number) => void;
+  focusShadow: (x: number, z: number) => void;
 }
 
 export function createField(): Field {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(FOG);
-  scene.fog = new THREE.FogExp2(FOG, 0.0046);
+  scene.fog = new THREE.FogExp2(FOG, 0.0055);
 
   scene.add(createSky());
-  scene.add(createTerrain());
+  const terrain = createTerrain();
+  scene.add(terrain);
 
-  const ambient = new THREE.AmbientLight(0x9aabbe, 0.38);
-  const hemi = new THREE.HemisphereLight(0xb7c4d2, 0x3a4a2a, 0.82);
-  const sun = new THREE.DirectionalLight(SUN, 2.7);
-  sun.position.set(-120, 62, 40);
-  const fill = new THREE.DirectionalLight(0xb7c6d6, 0.42);
+  const ambient = new THREE.AmbientLight(0x4a524c, 0.22);
+  const hemi = new THREE.HemisphereLight(0xb7c3cc, 0x6e6254, 0.7);
+  const sun = new THREE.DirectionalLight(SUN, 1.7);
+  const fill = new THREE.DirectionalLight(0xaeb6ba, 0.28);
   fill.position.set(70, 36, -28);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.bias = -0.0002;
-  sun.shadow.normalBias = 0.14;
-  sun.shadow.radius = 3;
+  sun.shadow.bias = -0.00018;
+  sun.shadow.normalBias = 0.045;
+  sun.shadow.radius = 4;
   const shadowCam = sun.shadow.camera as THREE.OrthographicCamera;
-  shadowCam.left = -140;
-  shadowCam.right = 140;
-  shadowCam.top = 140;
-  shadowCam.bottom = -140;
-  shadowCam.near = 10;
-  shadowCam.far = 340;
-  sun.target.position.set(0, 6, 0);
   scene.add(ambient, hemi, sun, sun.target, fill);
+  const focusShadow = (x: number, z: number): void => {
+    sun.position.set(x - 56, 42, z + 28);
+    sun.target.position.set(x, 4, z);
+    sun.target.updateMatrixWorld();
+    shadowCam.left = -46;
+    shadowCam.right = 46;
+    shadowCam.top = 46;
+    shadowCam.bottom = -46;
+    shadowCam.near = 8;
+    shadowCam.far = 170;
+    shadowCam.updateProjectionMatrix();
+  };
+  focusShadow(0, 6);
 
   const rand = mulberry32(19);
   const trees = createTrees(rand);
@@ -91,15 +102,23 @@ export function createField(): Field {
   UNIT.y = hillHeight(UNIT.x, UNIT.z);
   scene.add(createBunker(BUNKER));
   scene.add(createWatchtower(TOWER));
-  scene.add(createCarrier(UNIT));
-  scene.add(createMist(rand));
+  const unit = createCarrier(UNIT);
+  scene.add(unit);
+  const mist = createMist(rand);
+  scene.add(mist.group);
 
   const dust = createDust(rand);
   scene.add(dust.points);
 
   return {
     scene,
-    update: (time: number) => dust.update(time),
+    terrain,
+    unit,
+    focusShadow,
+    update: (time: number) => {
+      dust.update(time);
+      mist.update(time);
+    },
   };
 }
 
@@ -113,7 +132,7 @@ function createSky(): THREE.Mesh {
     depthWrite: false,
     fog: false,
     uniforms: {
-      uZenith: { value: new THREE.Color(0x667584) },
+      uZenith: { value: new THREE.Color(0x6e767c) },
       uHorizon: { value: new THREE.Color(FOG) },
     },
     vertexShader: `
@@ -162,7 +181,7 @@ function makeGroundNormalMap(): THREE.DataTexture {
     for (let x = 0; x < size; x++) heights[y * size + x] = grit(x * 0.17, y * 0.17);
   }
   const data = new Uint8Array(size * size * 4);
-  const strength = 3.2;
+  const strength = 1.55;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const left = heights[y * size + ((x + size - 1) % size)];
@@ -183,7 +202,7 @@ function makeGroundNormalMap(): THREE.DataTexture {
   const texture = new THREE.DataTexture(data, size, size);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(28, 28);
+  texture.repeat.set(18, 18);
   texture.colorSpace = THREE.NoColorSpace;
   texture.needsUpdate = true;
   return texture;
@@ -219,15 +238,14 @@ function createTerrain(): THREE.Mesh {
     const z = pos.getZ(i);
     const h = pos.getY(i);
     const slope = 1 - normal.getY(i);
-    const patch = blot(x * 0.028, z * 0.026);
-    tint.copy(olive).lerp(valley, patch * 0.28);
-    tint.lerp(valley, (1 - THREE.MathUtils.smoothstep(h, -6, 3)) * 0.7);
-    const crest = THREE.MathUtils.smoothstep(h, 5, 14) * (1 - THREE.MathUtils.smoothstep(slope, 0.05, 0.26));
-    tint.lerp(ridge, crest * 0.62);
-    const mudPatch = blot(x * 0.07 + 12, z * 0.064);
-    tint.lerp(mud, THREE.MathUtils.smoothstep(mudPatch, 0.58, 0.8) * 0.72);
-    tint.lerp(mud, (1 - THREE.MathUtils.smoothstep(h, -12, -3)) * 0.4);
-    tint.lerp(stone, THREE.MathUtils.smoothstep(slope, 0.4, 0.72));
+    const heightT = THREE.MathUtils.smoothstep(h, -5, 11);
+    tint.copy(valley).lerp(olive, 0.35 + heightT * 0.25);
+    tint.lerp(ridge, heightT * (1 - THREE.MathUtils.smoothstep(slope, 0.08, 0.4)));
+    tint.lerp(stone, THREE.MathUtils.smoothstep(slope, 0.32, 0.7) * 0.55);
+    const mudPatch = blot(x * 0.045 + 12, z * 0.04);
+    const flat = 1 - THREE.MathUtils.smoothstep(slope, 0.05, 0.32);
+    const low = 1 - THREE.MathUtils.smoothstep(h, -2, 7);
+    tint.lerp(mud, flat * low * THREE.MathUtils.smoothstep(mudPatch, 0.48, 0.74) * 0.92);
     colors[i * 3] = tint.r;
     colors[i * 3 + 1] = tint.g;
     colors[i * 3 + 2] = tint.b;
@@ -240,7 +258,7 @@ function createTerrain(): THREE.Mesh {
       roughness: 0.9,
       metalness: 0,
       normalMap: makeGroundNormalMap(),
-      normalScale: new THREE.Vector2(0.75, 0.75),
+      normalScale: new THREE.Vector2(0.38, 0.38),
       dithering: true,
     }),
   );
@@ -272,7 +290,7 @@ function createTrees(rand: () => number): {
   mid: THREE.InstancedMesh;
   high: THREE.InstancedMesh;
 } {
-  const count = 150;
+  const count = 120;
   const trunkGeo = new THREE.CylinderGeometry(0.1, 0.2, 1.55, 5);
   trunkGeo.translate(0, 0.78, 0);
   const lowGeo = new THREE.ConeGeometry(1.25, 2.35, 6);
@@ -282,41 +300,23 @@ function createTrees(rand: () => number): {
   const highGeo = new THREE.ConeGeometry(0.55, 1.55, 5);
   highGeo.translate(0, 4.05, 0);
   const trunks = new THREE.InstancedMesh(trunkGeo, std(0x5a4c3c, 0.88), count);
-  const low = new THREE.InstancedMesh(lowGeo, std(0x314422, 0.9), count);
-  const midMesh = new THREE.InstancedMesh(midGeo, std(0x3c5228, 0.9), count);
-  const high = new THREE.InstancedMesh(highGeo, std(0x4a6234, 0.88), count);
+  const low = new THREE.InstancedMesh(lowGeo, std(TREE, 0.9), count);
+  const midMesh = new THREE.InstancedMesh(midGeo, std(0x44523a, 0.9), count);
+  const high = new THREE.InstancedMesh(highGeo, std(0x4e5c42, 0.88), count);
   const dummy = new THREE.Object3D();
   const leaf = new THREE.Color();
   const centers: Array<[number, number]> = [
-    [-42, 24], [38, 30], [18, 8], [-16, -4], [44, -8], [-36, -22], [8, -24], [48, 8], [-8, 16],
+    [-46, 34], [40, 30], [34, -34], [-38, -26], [6, -40], [-14, 46],
   ];
   let placed = 0;
-  for (let cluster = 0; cluster < 15 && placed < count; cluster++) {
-    const fixed = centers[cluster];
-    let cx = 0;
-    let cz = 0;
-    if (fixed) {
-      cx = fixed[0];
-      cz = fixed[1];
-    } else {
-      let best = -999;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const x = (rand() - 0.5) * 340;
-        const z = (rand() - 0.5) * 340;
-        const h = rawHeight(x, z);
-        if (h > best) {
-          best = h;
-          cx = x;
-          cz = z;
-        }
-      }
-    }
-    const members = 6 + Math.floor(rand() * 7);
+  for (let cluster = 0; cluster < centers.length && placed < count; cluster++) {
+    const [cx, cz] = centers[cluster];
+    const members = 12 + Math.floor(rand() * 6);
     for (let i = 0; i < members && placed < count; i++) {
-      const x = cx + (rand() + rand() - 1) * 7;
-      const z = cz + (rand() + rand() - 1) * 7;
+      const x = cx + (rand() + rand() - 1) * 4.4;
+      const z = cz + (rand() + rand() - 1) * 4.4;
       if (blocked(x, z, 12)) continue;
-      const scale = (rand() > 0.55 ? 0.74 : 1) * (0.85 + rand() * 0.9);
+      const scale = 0.78 + rand() * 0.62;
       dummy.position.set(x, hillHeight(x, z) - 0.08, z);
       dummy.rotation.set((rand() - 0.5) * 0.06, rand() * Math.PI * 2, (rand() - 0.5) * 0.06);
       dummy.scale.set(scale, scale * (0.82 + rand() * 0.4), scale);
@@ -325,7 +325,8 @@ function createTrees(rand: () => number): {
       low.setMatrixAt(placed, dummy.matrix);
       midMesh.setMatrixAt(placed, dummy.matrix);
       high.setMatrixAt(placed, dummy.matrix);
-      leaf.setRGB(0.84 + rand() * 0.16, 0.88 + rand() * 0.12, 0.8 + rand() * 0.14);
+      const shade = 0.9 + rand() * 0.14;
+      leaf.setRGB(shade, shade * (0.98 + rand() * 0.04), shade * 0.92);
       low.setColorAt(placed, leaf);
       midMesh.setColorAt(placed, leaf);
       high.setColorAt(placed, leaf);
@@ -344,12 +345,12 @@ function createDistantTrees(rand: () => number): THREE.InstancedMesh {
   const count = 80;
   const geo = new THREE.ConeGeometry(1.8, 7.5, 5);
   geo.translate(0, 3.6, 0);
-  const mesh = new THREE.InstancedMesh(geo, std(0x1c2818, 0.92), count);
+  const mesh = new THREE.InstancedMesh(geo, std(TREE_FAR, 0.9), count);
   const dummy = new THREE.Object3D();
   const color = new THREE.Color();
   for (let i = 0; i < count; i++) {
     const angle = rand() * Math.PI * 2;
-    const radius = 210 + rand() * 150;
+    const radius = 128 + rand() * 70;
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
     const scale = 1.4 + rand() * 1.8;
@@ -358,7 +359,8 @@ function createDistantTrees(rand: () => number): THREE.InstancedMesh {
     dummy.scale.set(scale, scale * (0.8 + rand() * 0.5), scale);
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
-    color.setRGB(0.7 + rand() * 0.2, 0.75 + rand() * 0.15, 0.68);
+    const shade = 0.78 + rand() * 0.16;
+    color.setRGB(shade, shade, shade * 0.96);
     mesh.setColorAt(i, color);
   }
   shadeInstances([mesh], false);
@@ -369,16 +371,14 @@ function createDistantTrees(rand: () => number): THREE.InstancedMesh {
 function createRocks(rand: () => number): THREE.InstancedMesh {
   const count = 70;
   const geo = new THREE.DodecahedronGeometry(0.65, 0);
-  const mesh = new THREE.InstancedMesh(geo, std(0x7a746c, 0.9), count);
+  const mesh = new THREE.InstancedMesh(geo, std(0x6e6860, 0.9), count);
   const dummy = new THREE.Object3D();
   const color = new THREE.Color();
-  const centers: Array<[number, number]> = [[-10, 34], [-28, 16], [4, 18], [18, -8], [32, 14], [-4, 8]];
+  const centers: Array<[number, number]> = [[-42, 30], [36, 26], [14, -6], [-10, 42], [28, -30], [-34, -22]];
   let placed = 0;
-  for (let cluster = 0; cluster < 12 && placed < count; cluster++) {
-    const fixed = centers[cluster];
-    const cx = fixed ? fixed[0] : (rand() - 0.5) * 300;
-    const cz = fixed ? fixed[1] : (rand() - 0.5) * 300;
-    const members = 3 + Math.floor(rand() * 4);
+  for (let cluster = 0; cluster < centers.length && placed < count; cluster++) {
+    const [cx, cz] = centers[cluster];
+    const members = 5 + Math.floor(rand() * 4);
     for (let i = 0; i < members && placed < count; i++) {
       const x = cx + (rand() - 0.5) * 6;
       const z = cz + (rand() - 0.5) * 6;
@@ -404,10 +404,21 @@ function createDebris(rand: () => number): THREE.Group {
   const group = new THREE.Group();
   const wood = std(0x5a4636, 0.88);
   const crateMat = std(0x6a5c44, 0.84);
+  const sand = std(0x6d5e46, 0.9);
   group.name = 'debris';
-  for (let i = 0; i < 16; i++) {
-    const x = (rand() - 0.5) * 120;
-    const z = (rand() - 0.5) * 90;
+  const logAnchors: Array<[number, number]> = [[-42, 30], [36, 24], [-34, -22], [8, -36]];
+  for (const [ax, az] of logAnchors) {
+    const x = ax + (rand() - 0.5) * 6;
+    const z = az + (rand() - 0.5) * 6;
+    if (blocked(x, z, 8)) continue;
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 2.2, 6), wood);
+    log.position.set(x, hillHeight(x, z) + 0.2, z);
+    log.rotation.set(0.05, rand() * Math.PI, Math.PI / 2);
+    group.add(log);
+  }
+  for (let i = 0; i < 8; i++) {
+    const x = (rand() - 0.5) * 90;
+    const z = (rand() - 0.5) * 70;
     if (blocked(x, z, 8)) continue;
     const log = new THREE.Mesh(new THREE.CylinderGeometry(0.16 + rand() * 0.12, 0.18, 1.6 + rand() * 1.8, 6), wood);
     log.position.set(x, hillHeight(x, z) + 0.18, z);
@@ -415,13 +426,22 @@ function createDebris(rand: () => number): THREE.Group {
     log.scale.y = 0.85 + rand() * 0.4;
     group.add(log);
   }
-  const crates: Array<[number, number]> = [[-2, 20], [2, 16], [-14, 20], [12, 8]];
+  const crates: Array<[number, number]> = [[-2, 20], [2, 16], [-14, 20], [12, 8], [30, 22], [-40, 26]];
   for (const [x, z] of crates) {
     const crate = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.55, 0.7), crateMat);
     crate.position.set(x, hillHeight(x, z) + 0.28, z);
     crate.rotation.y = rand() * Math.PI;
     crate.scale.setScalar(0.85 + rand() * 0.4);
     group.add(crate);
+  }
+  for (let i = 0; i < 5; i++) {
+    const x = -12 + i * 0.7;
+    const z = 22;
+    const bag = new THREE.Mesh(new THREE.SphereGeometry(0.28, 6, 5), sand);
+    bag.scale.set(1.3, 0.62, 0.9);
+    bag.position.set(x, hillHeight(x, z) + 0.16, z);
+    bag.rotation.y = i;
+    group.add(bag);
   }
   group.traverse((obj) => {
     const mesh = obj as THREE.Mesh;
@@ -445,12 +465,12 @@ function paint(group: THREE.Group): void {
 
 function createBunker(origin: THREE.Vector3): THREE.Group {
   const group = new THREE.Group();
-  const concrete = std(0x9a958c, 0.88);
-  const stained = std(0x7e7a72, 0.9);
+  const concrete = std(0x6a6458, 0.9);
+  const stained = std(0x5a564e, 0.9);
   const dark = std(0x3a403e, 0.8, 0.08);
   const sand = std(0x6d5e46, 0.9);
   const wood = std(0x5c5042, 0.86);
-  const metal = std(0x6a7074, 0.72, 0.28);
+  const metal = std(0x6a7074, 0.78, 0.14);
   const body = new THREE.Mesh(new THREE.BoxGeometry(13.2, 3.4, 8), concrete);
   body.position.y = 1.7;
   const roof = new THREE.Mesh(new THREE.BoxGeometry(14.1, 0.5, 8.8), stained);
@@ -483,7 +503,7 @@ function createBunker(origin: THREE.Vector3): THREE.Group {
   whip.position.set(3.6, 4.5, -2.2);
   whip.rotation.x = 0.15;
   group.add(mast, tip, whip);
-  const pad = new THREE.Mesh(new THREE.CircleGeometry(10, 16), std(0x5c513e, 0.92));
+  const pad = new THREE.Mesh(new THREE.CircleGeometry(10, 16), std(0x5c513e, 0.9));
   pad.rotation.x = -Math.PI / 2;
   pad.position.y = 0.04;
   group.add(pad);
@@ -506,7 +526,7 @@ function createWatchtower(origin: THREE.Vector3): THREE.Group {
   const group = new THREE.Group();
   const wood = std(0x65594a, 0.86);
   const dark = std(0x4a4338, 0.88);
-  const metal = std(0x72767a, 0.74, 0.26);
+  const metal = std(0x72767a, 0.8, 0.12);
   const posts: Array<[number, number]> = [[-1.35, -1.35], [1.35, -1.35], [-1.35, 1.35], [1.35, 1.35]];
   const height = 14.2;
   for (const [x, z] of posts) {
@@ -553,8 +573,8 @@ function createWatchtower(origin: THREE.Vector3): THREE.Group {
 
 function createCarrier(origin: THREE.Vector3): THREE.Group {
   const group = new THREE.Group();
-  const olive = std(0x4d5634, 0.84, 0.04);
-  const dark = std(0x2c312c, 0.74, 0.32);
+  const olive = std(0x4e5844, 0.84, 0.06);
+  const dark = std(0x3a4038, 0.86, 0.1);
   const boxMat = std(0x5c5344, 0.86);
   const canvas = std(0x59624a, 0.9);
   const hull = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.05, 6.2), olive);
@@ -577,8 +597,13 @@ function createCarrier(origin: THREE.Vector3): THREE.Group {
       wheel.position.set(x, 0.3, -2.4 + i * 1.2);
       group.add(wheel);
     }
+    for (let i = 0; i < 8; i++) {
+      const tread = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.2), dark);
+      tread.position.set(x, 0.08, -2.9 + i * 0.82);
+      group.add(tread);
+    }
   }
-  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 2.6, 5), std(0x6e7478, 0.7, 0.3));
+  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 2.6, 5), std(0x6e7478, 0.78, 0.14));
   antenna.position.set(-0.85, 3.15, 0.2);
   antenna.rotation.z = 0.12;
   const mount = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16), dark);
@@ -601,49 +626,92 @@ function createCarrier(origin: THREE.Vector3): THREE.Group {
   return group;
 }
 
-function createMist(rand: () => number): THREE.Group {
+function radialTexture(fadeAlpha: boolean): THREE.CanvasTexture {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not create a haze texture');
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.04, size / 2, size / 2, size * 0.5);
+  if (fadeAlpha) {
+    gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+    gradient.addColorStop(0.4, 'rgba(255,255,255,0.35)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  } else {
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.42, '#6e6e6e');
+    gradient.addColorStop(1, '#000000');
+  }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.NoColorSpace;
+  return texture;
+}
+
+function createMist(rand: () => number): { group: THREE.Group; update: (time: number) => void } {
   const group = new THREE.Group();
   const material = new THREE.MeshBasicMaterial({
     color: HAZE,
+    alphaMap: radialTexture(false),
     transparent: true,
-    opacity: 0.07,
+    opacity: 0.1,
     depthWrite: false,
     fog: true,
   });
   const anchors: Array<[number, number, number]> = [
-    [10, 18, 14], [-28, 6, 12], [22, -10, 11], [-6, -20, 13],
+    [-38, 6, 18], [30, 24, 16], [8, -32, 17],
   ];
+  const sheets: THREE.Mesh[] = [];
   for (const [x, z, radius] of anchors) {
-    const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 18), material);
+    const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 20), material);
     mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(x + (rand() - 0.5) * 2, hillHeight(x, z) + 0.45, z);
-    mesh.scale.set(1, 0.72 + rand() * 0.3, 1);
+    const y = hillHeight(x, z) + 0.7;
+    mesh.position.set(x, y, z);
+    mesh.scale.set(1, 0.78 + rand() * 0.28, 1);
     mesh.renderOrder = 2;
+    mesh.userData.baseX = x;
+    mesh.userData.baseZ = z;
     group.add(mesh);
+    sheets.push(mesh);
   }
   group.name = 'mist';
-  return group;
+  return {
+    group,
+    update: (time: number) => {
+      for (let i = 0; i < sheets.length; i++) {
+        const mesh = sheets[i];
+        const x = (mesh.userData.baseX as number) + Math.sin(time * 0.07 + i) * 3.2;
+        const z = (mesh.userData.baseZ as number) + Math.cos(time * 0.05 + i * 1.4) * 2.4;
+        mesh.position.x = x;
+        mesh.position.z = z;
+        mesh.position.y = hillHeight(x, z) + 0.65;
+      }
+    },
+  };
 }
 
 function createDust(rand: () => number): { points: THREE.Points; update: (time: number) => void } {
-  const count = 460;
+  const count = 220;
   const positions = new Float32Array(count * 3);
   const seeds = new Float32Array(count);
   for (let i = 0; i < count; i++) {
-    const x = (rand() - 0.5) * 240;
-    const z = (rand() - 0.5) * 240;
+    const x = (rand() - 0.5) * 180;
+    const z = (rand() - 0.5) * 180;
     positions[i * 3] = x;
-    positions[i * 3 + 1] = hillHeight(x, z) + 0.5 + rand() * 6.5;
+    positions[i * 3 + 1] = hillHeight(x, z) + 0.4 + rand() * 5.5;
     positions[i * 3 + 2] = z;
     seeds[i] = rand() * Math.PI * 2;
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const points = new THREE.Points(geo, new THREE.PointsMaterial({
-    color: 0xc8c2b4,
-    size: 2.2,
+    color: 0xc4bba8,
+    map: radialTexture(true),
+    size: 0.85,
     transparent: true,
-    opacity: 0.24,
+    opacity: 0.22,
     depthWrite: false,
     sizeAttenuation: true,
   }));
@@ -657,10 +725,14 @@ function createDust(rand: () => number): { points: THREE.Points; update: (time: 
       previous = time;
       const attr = geo.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < count; i++) {
-        let x = attr.getX(i) + dt * 1.15;
-        if (x > 120) x -= 240;
+        let x = attr.getX(i) + dt * (0.28 + (i % 5) * 0.04);
+        let z = attr.getZ(i) + dt * Math.sin(seeds[i]) * 0.12;
+        if (x > 90) x -= 180;
+        if (z > 90) z -= 180;
+        if (z < -90) z += 180;
         attr.setX(i, x);
-        attr.setY(i, positions[i * 3 + 1] + Math.sin(time * 0.35 + seeds[i]) * 0.16);
+        attr.setZ(i, z);
+        attr.setY(i, positions[i * 3 + 1] + Math.sin(time * 0.22 + seeds[i]) * 0.12);
       }
       attr.needsUpdate = true;
     },
