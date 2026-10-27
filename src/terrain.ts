@@ -1,5 +1,5 @@
-import { Mesh, PlaneGeometry, Vector2 } from 'three';
-import { WORLD, computeHeight, settlement } from './field';
+import { Mesh, PlaneGeometry, Vector4 } from 'three';
+import { WORLD, computeHeight, crops } from './field';
 import { lit } from './lit';
 import type { Library } from './textures';
 
@@ -57,8 +57,9 @@ export function createTerrain(library: Library): Mesh {
         shader.uniforms.uDirtNor = { value: library.dirt.normal };
         shader.uniforms.uRockNor = { value: library.rock.normal };
         shader.uniforms.uTime = time;
-        const home = settlement();
-        shader.uniforms.uWheat = { value: new Vector2(home.x + 12, home.z - 1) };
+        shader.uniforms.uCrop = {
+          value: crops().map((plot) => new Vector4(plot.x, plot.z, plot.hx, plot.hz)),
+        };
 
         const header = `
 uniform sampler2D uSplat;
@@ -69,7 +70,7 @@ uniform sampler2D uRockMap;
 uniform sampler2D uDirtNor;
 uniform sampler2D uRockNor;
 uniform float uTime;
-uniform vec2 uWheat;
+uniform vec4 uCrop[2];
 varying vec3 vWorld;
 `;
         shader.vertexShader = shader.vertexShader
@@ -109,22 +110,54 @@ splat /= max(splat.r + splat.g + splat.b + splat.a, 0.001);
 const TERRAIN_MAP = `
 {
 ${SAMPLE}
-vec4 grass = texture2D(map, detailUv);
-vec4 dirt = texture2D(uDirtMap, detailUv);
-vec4 mud = texture2D(uMudMap, detailUv * 0.85);
-vec4 rock = texture2D(uRockMap, detailUv * 0.72);
-float broad = texture2D(uCloud, vWorld.xz * 0.012 + vec2(9.0, 3.0)).r;
-float wheat = 1.0 - smoothstep(4.0, 10.5, length(vWorld.xz - uWheat));
-vec3 meadow = mix(vec3(0.16, 0.78, 0.14), vec3(0.58, 0.7, 0.16), smoothstep(0.45, 0.82, broad));
-meadow = mix(meadow, grass.rgb, 0.12);
-meadow = mix(meadow, vec3(0.8, 0.62, 0.12), wheat);
-vec3 albedo = mix(meadow, vec3(0.48, 0.34, 0.14), splat.g);
-albedo = mix(albedo, mud.rgb, splat.b);
-albedo = mix(albedo, rock.rgb, splat.a);
+vec3 grassTex = texture2D(map, detailUv).rgb;
+vec3 dirtTex = texture2D(uDirtMap, detailUv).rgb;
+vec3 mudTex = texture2D(uMudMap, detailUv * 0.85).rgb;
+vec3 rockTex = texture2D(uRockMap, detailUv * 0.72).rgb;
+float broad = texture2D(uCloud, vWorld.xz * 0.011 + vec2(9.0, 3.0)).r;
+float fine = texture2D(uCloud, vWorld.xz * 0.048 + vec2(2.0, 7.0)).r;
+vec3 lush = vec3(0.18, 0.42, 0.08);
+vec3 gold = vec3(0.42, 0.44, 0.1);
+vec3 olive = vec3(0.13, 0.26, 0.055);
+vec3 meadow = mix(lush, gold, smoothstep(0.36, 0.78, broad));
+meadow = mix(meadow, olive, smoothstep(0.52, 0.86, fine) * 0.72);
+float texL = dot(grassTex, vec3(0.25, 0.6, 0.15));
+texL = smoothstep(0.02, 0.2, texL);
+meadow *= mix(0.84, 1.16, texL);
+float blades = fract(sin(dot(floor(vWorld.xz * 5.5), vec2(19.1, 73.7))) * 43758.5);
+meadow *= 0.9 + 0.13 * blades;
+float crop = 0.0;
+for (int i = 0; i < 2; i++) {
+  vec2 cropD = abs(vWorld.xz - uCrop[i].xy);
+  float mask = 1.0 - smoothstep(0.25, 1.2, max(cropD.x - uCrop[i].z, cropD.y - uCrop[i].w));
+  crop = max(crop, mask);
+}
+float furrow = 0.8 + 0.2 * sin((vWorld.x * 0.35 + vWorld.z) * 9.0);
+meadow = mix(meadow, vec3(0.68, 0.48, 0.08) * furrow, crop);
+vec3 dirtCol = dirtTex * vec3(2.3, 2.0, 1.6);
+vec3 albedo = mix(meadow, dirtCol, splat.g);
+albedo = mix(albedo, mudTex * 1.7, splat.b);
+albedo = mix(albedo, rockTex * 1.65, splat.a);
+vec2 cell = floor(vWorld.xz * 1.6);
+float flowerHash = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5);
+float flower = step(0.994, flowerHash);
+vec3 flowerCol = fract(flowerHash * 13.0) > 0.72 ? vec3(0.72, 0.16, 0.12) : vec3(0.95, 0.88, 0.55);
+albedo = mix(albedo, flowerCol, flower * (1.0 - crop) * splat.r);
 float cloudA = texture2D(uCloud, vWorld.xz * 0.007 + vec2(uTime * 0.004, uTime * 0.0012)).r;
 float cloudB = texture2D(uCloud, vWorld.xz * 0.016 + vec2(uTime * 0.006, -uTime * 0.002)).r;
 float cloud = smoothstep(0.18, 0.82, cloudA * 0.65 + cloudB * 0.35);
-albedo *= mix(0.84, 1.0, cloud);
+albedo *= mix(0.9, 1.0, cloud);
+#ifdef USE_SHADOWMAP
+  float sunShadow = getShadow(
+    directionalShadowMap[0],
+    directionalLightShadows[0].shadowMapSize,
+    directionalLightShadows[0].shadowIntensity,
+    directionalLightShadows[0].shadowBias,
+    directionalLightShadows[0].shadowRadius,
+    vDirectionalShadowCoord[0]
+  );
+  albedo *= mix(0.46, 1.0, sunShadow);
+#endif
 diffuseColor.rgb = albedo;
 }
 `;

@@ -1,10 +1,21 @@
 import { Color, Vector3 } from 'three';
 
-export const FOG_COLOR = new Color(0xd7c4aa);
-export const FOG_DENSITY = 0.0046;
+export const FOG_COLOR = new Color(0xc5d3df);
+export const FOG_DENSITY = 0.0032;
 
-/** Direction sunlight travels, late afternoon from the southwest. */
-export const LIGHT_DIR = new Vector3(-0.72, -0.32, -0.48).normalize();
+/**
+ * Sunlight travel direction. Elevation is about 42 degrees so meadow
+ * shadows stay short and dark, and the lit faces point toward the
+ * southwest camera.
+ */
+const elevation = (42 * Math.PI) / 180;
+const azimuth = -2.25;
+const horizontal = Math.cos(elevation);
+export const LIGHT_DIR = new Vector3(
+  Math.sin(azimuth) * horizontal,
+  -Math.sin(elevation),
+  Math.cos(azimuth) * horizontal,
+).normalize();
 
 export const SUN_COLOR = new Color(0xffc48a);
 export const CLOUD_SUN_COLOR = new Color(0xc9b3a2);

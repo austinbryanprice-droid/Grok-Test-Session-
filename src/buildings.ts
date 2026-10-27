@@ -29,7 +29,7 @@ export function createSettlement(library: Library): Settlement {
   const wood = surface(library.wood, 0.3);
   const plaster = surface(library.plaster, 0.28);
   const roofMat = surface(library.roof, 0.32);
-  roofMat.color = new Color(0x6d7886);
+  roofMat.color = new Color(0xffffff);
   const doorMat = surface(library.wood, 0.25);
   doorMat.color = new Color(0x6a4632);
   const metal = lit({
@@ -84,12 +84,19 @@ export function createSettlement(library: Library): Settlement {
   add(box(0.14, 0.14, 12.6, wood, -4.22, 2.35, 0));
   add(box(0.14, 0.14, 12.6, wood, 4.22, 2.35, 0));
 
-  const braceA = box(0.12, 2.4, 0.12, wood, -4.28, 3.3, -5.1);
+  const braceA = box(0.12, 2.4, 0.12, wood, -4.36, 3.3, -5.1);
   braceA.rotation.x = 0.7;
   add(braceA);
-  const braceB = box(0.12, 2.4, 0.12, wood, -4.28, 3.3, 4.7);
+  const braceB = box(0.12, 2.4, 0.12, wood, -4.36, 3.3, 4.7);
   braceB.rotation.x = -0.7;
   add(braceB);
+  add(box(0.1, 0.16, 12.6, wood, -4.38, 3.2, 0));
+  add(box(0.1, 0.16, 12.6, wood, -4.38, 1.55, 0));
+  [-5.1, -2.5, 0.4, 3.4].forEach((z, index) => {
+    const brace = box(0.1, 2.15, 0.1, wood, -4.38, 2.35, z);
+    brace.rotation.x = index % 2 === 0 ? 0.85 : -0.85;
+    add(brace);
+  });
 
   add(box(0.16, 2.15, 1.25, doorMat, -4.28, 1.72, -0.15));
   add(box(0.08, 0.7, 0.55, windowMat, -4.32, 2.85, -3.7));
@@ -119,7 +126,7 @@ export function createSettlement(library: Library): Settlement {
 
   const torch = new PointLight(0xff7a3c, 8, 16, 2);
   torch.position.set(-4.85, 2.45, -1.55);
-  torch.castShadow = true;
+  torch.castShadow = false;
   torch.shadow.mapSize.set(512, 512);
   torch.shadow.bias = -0.004;
   root.add(torch);
@@ -179,6 +186,14 @@ export function createSettlement(library: Library): Settlement {
   cottage(root, -7, 7.5, 0.15, stone, wood, plaster, roofMat);
   cottage(root, 1.5, -9.5, 0.5, stone, wood, plaster, roofMat);
   church(root, 7.2, -8.5, stone, roofMat);
+  for (let i = 1; i <= 6; i += 1) {
+    add(box(0.16, 0.9, 0.16, wood, -5.2 - i * 1.55, 0.45, -0.4 - i * 0.42));
+  }
+  for (let i = 0; i < 4; i += 1) {
+    const log = box(1.5, 0.26, 0.26, wood, -6.4, 0.28 + i * 0.22, 2.6);
+    log.rotation.y = 0.4;
+    add(log);
+  }
 
   return {
     object: root,
@@ -284,7 +299,25 @@ function church(
   };
   put(box(6.2, 0.4, 8.2, stone, 0, 0.2, 0));
   put(box(5.6, 4.2, 7.4, stone, 0, 2.5, 0));
-  put(box(1.8, 2.6, 1.8, stone, 1.6, 5.6, -2.6));
+  put(box(2.2, 6.4, 2.2, stone, 0, 3.6, -3.4));
+  const spire = new Mesh(new ConeGeometry(1.7, 2.6, 4), roof);
+  spire.position.set(0, 8.1, -3.4);
+  spire.rotation.y = Math.PI / 4;
+  spire.castShadow = true;
+  spire.receiveShadow = true;
+  group.add(spire);
+  put(box(0.12, 1.15, 0.12, stone, 0, 10.05, -3.4));
+  put(box(0.62, 0.12, 0.12, stone, 0, 10.25, -3.4));
+  const glass = lit({
+    color: 0x24160f,
+    emissive: 0xffb15a,
+    emissiveIntensity: 0.28,
+    roughness: 0.45,
+    metalness: 0,
+  });
+  put(box(0.12, 1.7, 0.42, glass, -2.85, 2.5, -1.2));
+  put(box(0.12, 1.7, 0.42, glass, -2.85, 2.5, 1.4));
+  put(box(0.12, 1.7, 0.42, glass, 2.85, 2.5, 0.2));
   const rise = 2.4;
   const run = 3.2;
   const length = Math.hypot(run, rise);

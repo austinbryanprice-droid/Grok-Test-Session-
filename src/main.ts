@@ -43,22 +43,23 @@ rig.frameFar();
 rig.bind(canvas);
 
 const home = homeSite();
-const sun = new DirectionalLight(SUN_COLOR, 2.5);
+const sun = new DirectionalLight(SUN_COLOR, 3.35);
 sun.castShadow = true;
 sun.shadow.mapSize.set(4096, 4096);
-sun.shadow.bias = -0.00045;
+sun.shadow.bias = -0.00018;
 sun.shadow.normalBias = 0.012;
-sun.shadow.radius = 1;
+sun.shadow.radius = 2;
+sun.shadow.intensity = 1;
 const shadowCamera = sun.shadow.camera;
-shadowCamera.near = 4;
-shadowCamera.far = 180;
-shadowCamera.left = -70;
-shadowCamera.right = 70;
-shadowCamera.top = 70;
-shadowCamera.bottom = -70;
+shadowCamera.near = 12;
+shadowCamera.far = 150;
+shadowCamera.left = -72;
+shadowCamera.right = 72;
+shadowCamera.top = 72;
+shadowCamera.bottom = -72;
 shadowCamera.updateProjectionMatrix();
-sun.position.copy(LIGHT_DIR).multiplyScalar(-90).add(new Vector3(home.x, home.y + 4, home.z));
-sun.target.position.set(home.x, home.y + 2, home.z);
+sun.position.copy(LIGHT_DIR).multiplyScalar(-78).add(new Vector3(home.x, home.y + 3, home.z));
+sun.target.position.set(home.x, home.y + 1.5, home.z);
 scene.add(sun);
 scene.add(sun.target);
 
@@ -68,10 +69,10 @@ const renderer = new WebGLRenderer({
   stencil: true,
   powerPreference: 'high-performance',
 });
-renderer.setClearColor(0xd7c4aa, 1);
+renderer.setClearColor(0xc5d3df, 1);
 renderer.outputColorSpace = SRGBColorSpace;
 renderer.toneMapping = ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.92;
+renderer.toneMappingExposure = 1.02;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFShadowMap;
 library.setAnisotropy(renderer.capabilities.getMaxAnisotropy());
@@ -89,7 +90,7 @@ const pmrem = new PMREMGenerator(renderer);
 const probe = new Scene();
 probe.add(atmosphere.sky);
 scene.environment = pmrem.fromScene(probe, 0.04, 1, 700).texture;
-scene.environmentIntensity = 0.48;
+scene.environmentIntensity = 0.24;
 scene.add(atmosphere.sky);
 
 const pipeline = createPipeline(renderer, scene, rig.camera);
@@ -134,10 +135,12 @@ function tick() {
 
     const shade = smoothstep(0.32, 0.74, noise2(time * 0.05, 2.4));
     sun.color.copy(SUN_COLOR).lerp(CLOUD_SUN_COLOR, 1 - shade);
-    sun.intensity = 2.5 * (0.84 + 0.16 * shade);
+    sun.intensity = 3.35 * (0.86 + 0.14 * shade);
 
     rig.apply();
+    renderer.shadowMap.enabled = true;
     river.renderReflection(renderer, scene, rig.camera);
+    renderer.shadowMap.enabled = true;
     if (viewParams.has('plain')) renderer.render(scene, rig.camera);
     else pipeline.composer.render();
     frames += 1;

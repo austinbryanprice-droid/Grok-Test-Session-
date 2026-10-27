@@ -52,8 +52,8 @@ export function createAtmosphere(scene: Scene): { sky: Mesh; fill: HemisphereLig
        vec3 zenith = vec3(0.12, 0.28, 0.7);
        retColor = mix(horizon, zenith, smoothstep(0.0, 0.55, above));
        float sunFacing = clamp(dot(normalize(direction), normalize(vSunDirection)), 0.0, 1.0);
-       retColor = mix(retColor, vec3(0.72, 0.52, 0.28), pow(sunFacing, 4.0) * 0.45);
-       retColor += vec3(0.85, 0.62, 0.28) * pow(sunFacing, 28.0) * 0.35;
+       retColor = mix(retColor, vec3(0.9, 0.64, 0.32), pow(sunFacing, 6.0) * 0.5);
+       retColor += vec3(1.0, 0.78, 0.42) * pow(sunFacing, 56.0);
        vec2 cuv = direction.xz / max(above, 0.12);
        float cloud = cloudFbm(cuv * 1.35 + vec2(uCloudTime * 0.012, uCloudTime * 0.004));
        cloud = smoothstep(0.48, 0.76, cloud) * smoothstep(0.02, 0.22, above);
@@ -65,7 +65,7 @@ export function createAtmosphere(scene: Scene): { sky: Mesh; fill: HemisphereLig
   sky.frustumCulled = false;
   scene.add(sky);
 
-  const fill = new HemisphereLight(SKY_FILL, GROUND_BOUNCE, 0.22);
+  const fill = new HemisphereLight(SKY_FILL, GROUND_BOUNCE, 0.2);
   scene.add(fill);
   return { sky, fill };
 }

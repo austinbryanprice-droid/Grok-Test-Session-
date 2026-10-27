@@ -64,10 +64,10 @@ void main() {
   vec3 col = mix(water, refl * vec3(0.65, 0.78, 0.82), clamp(fres * 0.28, 0.0, 0.35));
   col += vec3(0.9, 0.95, 0.8) * spec * 0.35;
   float foamNoise = texture2D(uCloud, vWorld.xz * 0.14 + vec2(uTime * 0.03, 0.0)).r;
-  float shore = 1.0 - smoothstep(0.04, 0.32, mask.r);
-  float foam = clamp(shore * 0.95 + mask.g * 0.7, 0.0, 1.0);
-  foam *= 0.45 + 0.55 * smoothstep(0.2, 0.7, foamNoise);
-  col = mix(col, vec3(0.86, 0.93, 0.9), foam);
+  float shore = 1.0 - smoothstep(0.0, 0.07, mask.r);
+  float lace = smoothstep(0.4, 0.82, foamNoise);
+  float foam = clamp(shore * 0.45 + mask.g * lace, 0.0, 1.0);
+  col = mix(col, vec3(0.94, 0.97, 0.95), foam * 0.9);
   float cloud = texture2D(uCloud, vWorld.xz * 0.007 + vec2(uTime * 0.004, uTime * 0.001)).r;
   col *= mix(0.7, 1.0, smoothstep(0.2, 0.82, cloud));
   float dist = length(cameraPosition - vWorld);
@@ -103,8 +103,8 @@ export function createRiver(library: Library): River {
       uCloud: { value: library.cloud },
       uTime: time,
       uSun: { value: LIGHT_DIR.clone().multiplyScalar(-1) },
-      uShallow: { value: new Vector3(0.05, 0.42, 0.4) },
-      uDeep: { value: new Vector3(0.01, 0.08, 0.2) },
+      uShallow: { value: new Vector3(0.18, 0.58, 0.5) },
+      uDeep: { value: new Vector3(0.012, 0.07, 0.18) },
       uFogColor: { value: FOG_COLOR },
       uFogDensity: { value: FOG_DENSITY },
     },
@@ -166,7 +166,7 @@ export function createRiver(library: Library): River {
 
     mesh.visible = false;
     const shadows = renderer.shadowMap.enabled;
-    renderer.shadowMap.enabled = false;
+    renderer.shadowMap.enabled = true;
     renderer.setRenderTarget(target);
     renderer.clear();
     renderer.render(scene, virtualCamera);

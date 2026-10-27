@@ -64,7 +64,7 @@ export function createPipeline(renderer: WebGLRenderer, scene: Scene, camera: Pe
     gtao.blendIntensity = 0.65;
     gtao.updateGtaoMaterial({ radius: 1.7, thickness: 2.2, distanceFallOff: 1.4 });
     composer.addPass(gtao);
-    bloom = new UnrealBloomPass(new Vector2(window.innerWidth, window.innerHeight), 0.12, 0.4, 0.92);
+    bloom = new UnrealBloomPass(new Vector2(window.innerWidth, window.innerHeight), 0.04, 0.35, 0.96);
     composer.addPass(bloom);
   }
 

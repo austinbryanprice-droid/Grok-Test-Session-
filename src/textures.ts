@@ -233,10 +233,11 @@ function roofPixel(x: number, y: number, size: number): Pixel {
   const curve = Math.sin((lx / tileW) * Math.PI);
   const lip = ly < 3;
   const n = tileNoise(Math.floor(x / tileW) + row, row, 16, size);
-  const r = lerp(132, 168, n) - (lip ? 30 : 0);
-  const g = lerp(62, 78, n) - (lip ? 16 : 0);
-  const b = lerp(48, 58, n);
-  return { r, g, b, rough: lerp(0.58, 0.8, 1 - curve), height: (lip ? 0.05 : 0.25 + curve * 0.7) };
+  const shade = lerp(0.78, 1, n);
+  const r = (lip ? 52 : 86) * shade;
+  const g = (lip ? 64 : 100) * shade;
+  const b = (lip ? 76 : 116) * shade;
+  return { r, g, b, rough: lerp(0.55, 0.8, 1 - curve), height: lip ? 0.08 : 0.28 + curve * 0.9 };
 }
 
 function paintSplat(): { splat: HTMLCanvasElement; mask: HTMLCanvasElement } {
