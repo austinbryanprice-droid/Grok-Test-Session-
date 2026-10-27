@@ -1,0 +1,18 @@
+{
+  "name": "golden-hour-blocks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "23.11.1",
+    "typescript": "5.6.3",
+    "vite": "6.0.11"
+  }
+}
