@@ -3,11 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sector</title>
+  <title>Marchfield</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <canvas id="view"></canvas>
+  <div id="loading">
+    <p>Painting the valley</p>
+    <div class="track"><div id="bar"></div></div>
+  </div>
+  <header id="stats"></header>
+  <nav id="quality" aria-label="Quality">
+    <button type="button" data-q="low">Low</button>
+    <button type="button" data-q="medium">Medium</button>
+    <button type="button" data-q="high">High</button>
+    <button type="button" data-q="ultra">Ultra</button>
+  </nav>
+  <canvas id="map" width="168" height="168" aria-label="Minimap"></canvas>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

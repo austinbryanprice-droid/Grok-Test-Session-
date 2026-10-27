@@ -9,6 +9,8 @@
     "look": "npm run build && node scripts/capture-look.mjs"
   },
   "dependencies": {
+    "n8ao": "^2.0.1",
+    "postprocessing": "^6.39.5",
     "three": "0.170.0"
   },
   "devDependencies": {

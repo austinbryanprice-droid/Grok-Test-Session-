@@ -2,11 +2,90 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #6d7c8c;
+  background: #c9dbea;
+  color: #3a3228;
+  font-family: Palatino, "Palatino Linotype", Georgia, serif;
 }
 
 #view {
   display: block;
   width: 100vw;
   height: 100vh;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  background: #e7dcc6;
+  z-index: 3;
+}
+
+#loading.hidden {
+  display: none;
+}
+
+#loading p {
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.track {
+  width: 220px;
+  height: 8px;
+  background: #cbbfa6;
+}
+
+#bar {
+  width: 0;
+  height: 100%;
+  background: #7a5a3c;
+}
+
+#stats {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  margin: 0;
+  padding: 8px 10px;
+  background: rgb(231 220 198 / 88%);
+  font-size: 13px;
+  z-index: 2;
+}
+
+#quality {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+#quality button {
+  border: 0;
+  background: rgb(231 220 198 / 88%);
+  color: #3a3228;
+  font: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+#quality button.active {
+  background: #7a5a3c;
+  color: #f4ecdf;
+}
+
+#map {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  width: 168px;
+  height: 168px;
+  background: #e7dcc6;
+  border: 6px solid #c2b59d;
+  z-index: 2;
 }
