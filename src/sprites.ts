@@ -184,10 +184,10 @@ export function renderToSprite(
 export function bakeFoliageSprites(renderer: WebGLRenderer): FoliageSprites {
   return {
     trees: [
-      renderToSprite(renderer, buildTreeImage(3), 1024, 256),
-      renderToSprite(renderer, buildTreeImage(19), 1024, 256),
+      renderToSprite(renderer, buildTreeImage(3), 768, 384),
+      renderToSprite(renderer, buildTreeImage(19), 768, 384),
     ],
-    grass: renderToSprite(renderer, buildTuft('grass', 5), 512, 256),
+    grass: renderToSprite(renderer, buildTuft('grass', 5), 512, 128),
     wheat: renderToSprite(renderer, buildTuft('wheat', 9), 512, 256),
   };
 }
@@ -265,74 +265,51 @@ function boxDownscale(pixels: Uint8Array, source: number, target: number): Uint8
   return out;
 }
 
-function leafTexture(): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 64;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('leaf texture');
-  const gradient = context.createRadialGradient(32, 30, 2, 32, 32, 30);
-  gradient.addColorStop(0, 'rgba(186, 214, 96, 1)');
-  gradient.addColorStop(0.45, 'rgba(74, 128, 48, 0.95)');
-  gradient.addColorStop(0.75, 'rgba(36, 78, 32, 0.55)');
-  gradient.addColorStop(1, 'rgba(20, 40, 16, 0)');
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, 64, 64);
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
-
 function buildTreeImage(seed: number): Group {
   const rand = mulberry32(seed);
   const group = new Group();
   const trunk = new Mesh(
-    new CylinderGeometry(0.07, 0.2, 1.9, 7),
+    new CylinderGeometry(0.08, 0.2, 1.7, 7),
     new MeshStandardMaterial({ color: 0x6a4630, roughness: 1 }),
   );
-  trunk.position.y = 0.95;
+  trunk.position.y = 0.85;
   trunk.castShadow = true;
   group.add(trunk);
 
   const clusters: Array<[number, number, number, number, number]> = [
-    [0, 2.55, 0, 1.25, 28],
-    [0.78, 2.05, 0.3, 0.85, 18],
-    [-0.72, 2.0, 0.16, 0.8, 18],
-    [0.1, 3.15, -0.25, 0.7, 14],
-    [-0.25, 1.6, 0.62, 0.62, 12],
-    [0.42, 1.55, -0.58, 0.58, 12],
-    [-0.18, 2.25, -0.72, 0.55, 10],
+    [0, 2.35, 0, 0.95, 14],
+    [0.62, 1.95, 0.22, 0.62, 8],
+    [-0.58, 1.9, 0.12, 0.58, 8],
+    [0.08, 2.85, -0.18, 0.48, 6],
+    [-0.16, 1.55, 0.48, 0.42, 5],
+    [0.28, 1.5, -0.42, 0.4, 5],
   ];
   const parts: BufferGeometry[] = [];
   for (const [cx, cy, cz, spread, count] of clusters) {
     for (let i = 0; i < count; i += 1) {
       const color = new Color();
-      const yellow = rand() > 0.82;
-      color.setHSL(yellow ? 0.16 : 0.24 + rand() * 0.06, 0.32 + rand() * 0.15, 0.62 + rand() * 0.28);
-      const width = 0.34 + rand() * 0.38;
-      const card = new PlaneGeometry(width, width * (0.72 + rand() * 0.45));
-      card.rotateY(rand() * Math.PI * 2);
-      card.rotateX((rand() - 0.5) * 2.4);
-      card.rotateZ((rand() - 0.5) * 1.2);
-      card.translate(
+      const yellow = rand() > 0.78;
+      color.setHSL(yellow ? 0.16 : 0.26 + rand() * 0.05, 0.42 + rand() * 0.16, 0.22 + rand() * 0.16);
+      const radius = 0.2 + rand() * 0.16;
+      const blob = new IcosahedronGeometry(radius, 1);
+      blob.scale(1, 0.72 + rand() * 0.2, 1);
+      blob.translate(
         cx + (rand() - 0.5) * spread,
-        cy + (rand() - 0.5) * spread * 0.72,
+        cy + (rand() - 0.5) * spread * 0.65,
         cz + (rand() - 0.5) * spread,
       );
-      parts.push(paint(card, color));
+      parts.push(paint(blob, color));
     }
   }
   const merged = mergeGeometries(parts, false);
   if (!merged) throw new Error('tree foliage');
   const leaves = new Mesh(merged, new MeshStandardMaterial({
-    map: leafTexture(),
     vertexColors: true,
-    alphaTest: 0.22,
-    roughness: 1,
+    roughness: 0.9,
     metalness: 0,
-    side: DoubleSide,
   }));
+  leaves.castShadow = true;
+  leaves.receiveShadow = true;
   group.add(leaves);
   return group;
 }
@@ -341,12 +318,12 @@ function buildTuft(kind: 'grass' | 'wheat', seed: number): Group {
   const rand = mulberry32(seed);
   const group = new Group();
   const parts: BufferGeometry[] = [];
-  const count = kind === 'wheat' ? 26 : 34;
+  const count = kind === 'wheat' ? 22 : 16;
   for (let i = 0; i < count; i += 1) {
     const angle = rand() * Math.PI * 2;
-    const radius = rand() * (kind === 'wheat' ? 0.34 : 0.58);
-    const height = kind === 'wheat' ? 0.85 + rand() * 0.55 : 0.32 + rand() * 0.55;
-    const width = kind === 'wheat' ? 0.035 + rand() * 0.02 : 0.045 + rand() * 0.04;
+    const radius = rand() * (kind === 'wheat' ? 0.28 : 0.16);
+    const height = kind === 'wheat' ? 0.9 + rand() * 0.5 : 0.16 + rand() * 0.22;
+    const width = kind === 'wheat' ? 0.04 + rand() * 0.02 : 0.1 + rand() * 0.06;
     const color = new Color();
     if (kind === 'wheat') color.setHSL(0.12 + rand() * 0.03, 0.55, 0.32 + rand() * 0.22);
     else color.setHSL(0.26 + rand() * 0.08, 0.45, 0.22 + rand() * 0.2);

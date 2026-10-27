@@ -9,7 +9,7 @@ import {
   Object3D,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { WORLD, computeHeight, crops, inClearing, inCrop, settlement, slopeAt, splatWeights, WATER_Y } from './field';
+import { WORLD, computeHeight, crops, inClearing, inCrop, riverCenterX, settlement, slopeAt, splatWeights, WATER_Y } from './field';
 import { lit } from './lit';
 import { mulberry32 } from './noise';
 import { billboardMaterial, spriteQuad, type FoliageSprites } from './sprites';
@@ -200,22 +200,31 @@ function placeTrees(): Spot[] {
       hue: rand() * 0.1,
     });
   };
-  for (let i = 0; i < 70; i += 1) add(-28 + rand() * 16, -6 + rand() * 48, 0.9 + rand() * 0.45);
-  for (let i = 0; i < 28; i += 1) add(home.x + 10 + rand() * 14, home.z + 14 + rand() * 18, 1.05 + rand() * 0.4);
+  const groves: Array<[number, number, number]> = [
+    [-24, 6, 16],
+    [-18, 26, 12],
+    [-22, -10, 10],
+    [home.x + 16, home.z + 18, 10],
+  ];
+  for (const [gx, gz, count] of groves) {
+    for (let i = 0; i < count; i += 1) {
+      add(gx + (rand() - 0.5) * 9, gz + (rand() - 0.5) * 8, 1.05 + rand() * 0.35);
+    }
+  }
   return spots;
 }
 
 function placeShrubs(): Spot[] {
   const rand = mulberry32(23);
   const spots: Spot[] = [];
-  for (let i = 0; i < 420 && spots.length < 140; i += 1) {
+  for (let i = 0; i < 500 && spots.length < 36; i += 1) {
     const x = (rand() - 0.5) * (WORLD - 12);
     const z = (rand() - 0.5) * (WORLD - 12);
     const y = computeHeight(x, z);
-    if (y < WATER_Y + 0.35 || slopeAt(x, z) > 0.7) continue;
-    if (inClearing(x, z) && rand() > 0.2) continue;
-    const [grass] = splatWeights(x, z);
-    if (grass < 0.25 && rand() > 0.3) continue;
+    const bank = Math.abs(x - riverCenterX(z));
+    if (y < WATER_Y + 0.35 || slopeAt(x, z) > 0.85) continue;
+    if (bank < 5 || bank > 16) continue;
+    if (inClearing(x, z) || inCrop(x, z)) continue;
     spots.push({
       x,
       y,
@@ -255,31 +264,30 @@ function placeWheat(): Spot[] {
 function placeGrass(): Spot[] {
   const rand = mulberry32(41);
   const home = settlement();
+  const plots = crops();
   const spots: Spot[] = [];
-  const stride = 1.05;
-  for (let z = home.z - 48; z < home.z + 48 && spots.length < 7000; z += stride) {
-    for (let x = home.x - 55; x < home.x + 40 && spots.length < 7000; x += stride) {
-      if (rand() > 0.62) continue;
-      const px = x + (rand() - 0.5) * stride * 1.4;
-      const pz = z + (rand() - 0.5) * stride * 1.4;
-      const y = computeHeight(px, pz);
-      if (y < WATER_Y + 0.25 || slopeAt(px, pz) > 0.62) continue;
-      const [grass, dirt] = splatWeights(px, pz);
-      if (grass < 0.3 || dirt > 0.72) continue;
-      if (inCrop(px, pz)) continue;
-      const yard = Math.hypot(px - (home.x - 1), pz - home.z) < 8.5;
-      if (yard && rand() > 0.1) continue;
-      if (inClearing(px, pz) && rand() > 0.5) continue;
-      spots.push({
-        x: px,
-        y: y + 0.02,
-        z: pz,
-        rot: rand() * Math.PI,
-        scale: 0.65 + rand() * 0.7,
-        wide: 1,
-        hue: (rand() - 0.5) * 0.08,
-      });
-    }
+  for (let i = 0; i < 2400 && spots.length < 140; i += 1) {
+    const px = home.x - 42 + rand() * 74;
+    const pz = home.z - 38 + rand() * 68;
+    const y = computeHeight(px, pz);
+    if (y < WATER_Y + 0.4 || slopeAt(px, pz) > 0.55) continue;
+    if (inCrop(px, pz) || inClearing(px, pz)) continue;
+    const [grass, dirt] = splatWeights(px, pz);
+    if (grass < 0.5 || dirt > 0.35) continue;
+    const nearCrop = plots.some((plot) => {
+      const distance = Math.hypot(px - plot.x, pz - plot.z);
+      return distance < plot.hx + 4 && distance > plot.hx - 0.4;
+    });
+    if (!nearCrop && rand() > 0.12) continue;
+    spots.push({
+      x: px,
+      y: y + 0.02,
+      z: pz,
+      rot: rand() * Math.PI,
+      scale: 0.85 + rand() * 0.45,
+      wide: 1,
+      hue: (rand() - 0.5) * 0.08,
+    });
   }
   return spots;
 }

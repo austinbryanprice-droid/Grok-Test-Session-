@@ -189,9 +189,9 @@ function stonePixel(x: number, y: number, size: number): Pixel {
   }
   const n = tileFbm(x, y, size);
   return {
-    r: lerp(132, 168, id) + (n - 0.5) * 16,
-    g: lerp(124, 156, id) + (n - 0.5) * 14,
-    b: lerp(110, 140, id) + (n - 0.5) * 12,
+    r: lerp(158, 196, id) + (n - 0.5) * 14,
+    g: lerp(152, 186, id) + (n - 0.5) * 12,
+    b: lerp(140, 172, id) + (n - 0.5) * 12,
     rough: lerp(0.68, 0.9, n),
     height: 0.55 + n * 0.25,
   };
