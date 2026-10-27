@@ -168,9 +168,9 @@ function mudPixel(x: number, y: number, size: number): Pixel {
 function rockPixel(x: number, y: number, size: number): Pixel {
   const n = tileFbm(x * 1.3, y * 1.1, size);
   const crack = Math.abs(tileFbm(x * 2.8, y * 2.4, size) - 0.48) < 0.03;
-  const r = (crack ? 70 : lerp(112, 146, n));
-  const g = (crack ? 66 : lerp(106, 136, n));
-  const b = (crack ? 60 : lerp(96, 124, n));
+  const r = (crack ? 96 : lerp(156, 196, n));
+  const g = (crack ? 84 : lerp(140, 172, n));
+  const b = (crack ? 68 : lerp(112, 142, n));
   return { r, g, b, rough: crack ? 0.95 : lerp(0.7, 0.9, n), height: (crack ? 0.05 : 0.35 + n * 0.6) };
 }
 

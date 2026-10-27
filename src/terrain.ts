@@ -136,6 +136,10 @@ for (int i = 0; i < 2; i++) {
 }
 float furrow = 0.8 + 0.2 * sin((vWorld.x * 0.35 + vWorld.z) * 9.0);
 meadow = mix(meadow, vec3(0.68, 0.48, 0.08) * furrow, crop);
+float mottled = texture2D(uCloud, vWorld.xz * 0.085 + vec2(2.2, 8.0)).r;
+float hay = texture2D(uCloud, vWorld.xz * 0.21 + vec2(5.4, 1.3)).r;
+meadow = mix(meadow, meadow * vec3(0.68, 0.84, 0.5), smoothstep(0.46, 0.82, mottled) * (1.0 - crop) * 0.55);
+meadow = mix(meadow, vec3(0.58, 0.5, 0.15), smoothstep(0.6, 0.9, hay) * (1.0 - crop) * splat.r * 0.42);
 vec3 dirtCol = dirtTex * vec3(2.3, 2.0, 1.6);
 vec3 albedo = mix(meadow, dirtCol, splat.g);
 albedo = mix(albedo, mudTex * 1.7, splat.b);

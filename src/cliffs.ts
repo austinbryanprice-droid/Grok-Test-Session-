@@ -7,7 +7,7 @@ import {
   Mesh,
   Object3D,
 } from 'three';
-import { WORLD, cliffEdgeX, computeHeight } from './field';
+import { WORLD, cliffEdgeX, computeHeight, settlement } from './field';
 import { lit } from './lit';
 import { mulberry32, noise2 } from './noise';
 import type { Library } from './textures';
@@ -39,16 +39,17 @@ export function createCliffs(library: Library): { cliff: Mesh; rocks: InstancedM
   }
   rockGeo.computeVertexNormals();
 
-  const count = 36;
+  const count = 52;
   const rocks = new InstancedMesh(rockGeo, material, count);
   rocks.castShadow = true;
   rocks.receiveShadow = true;
   rocks.frustumCulled = false;
   const dummy = new Object3D();
   const rand = mulberry32(19);
+  const home = settlement();
   let placed = 0;
   for (let i = 0; i < count; i += 1) {
-    const z = -WORLD / 2 + 8 + rand() * (WORLD - 16);
+    const z = home.z - 36 + rand() * 78;
     const edge = cliffEdgeX(z);
     const x = edge + 1.5 + rand() * 3.2;
     const y = computeHeight(x, z);
@@ -70,6 +71,7 @@ function cliffGeometry(): BufferGeometry {
   const uvs: number[] = [];
   const indices: number[] = [];
 
+  const bands = 5;
   const pushWall = (inset: number, topDrop: number) => {
     for (let i = 0; i < steps; i += 1) {
       const z0 = -WORLD / 2 + (i / steps) * WORLD;
@@ -81,11 +83,26 @@ function cliffGeometry(): BufferGeometry {
       const bot0 = computeHeight(x0 + 6.5, z0) - 0.15;
       const bot1 = computeHeight(x1 + 6.5, z1) - 0.15;
       if (top0 < bot0 + 0.8 || top1 < bot1 + 0.8) continue;
-      const base = positions.length / 3;
-      positions.push(x0, bot0, z0, x1, bot1, z1, x1, top1, z1, x0, top0, z0);
-      const v0 = i * 0.35;
-      uvs.push(v0, 0, v0 + 0.35, 0, v0 + 0.35, 1, v0, 1);
-      indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
+      for (let band = 0; band < bands; band += 1) {
+        const t0 = band / bands;
+        const t1 = (band + 1) / bands;
+        const ledge = (noise2(z0 * 0.23 + band, 4.2) - 0.35) * 1.7;
+        const ledge1 = (noise2(z1 * 0.23 + band, 4.2) - 0.35) * 1.7;
+        const y0a = bot0 + (top0 - bot0) * t0;
+        const y0b = bot0 + (top0 - bot0) * t1;
+        const y1a = bot1 + (top1 - bot1) * t0;
+        const y1b = bot1 + (top1 - bot1) * t1;
+        const base = positions.length / 3;
+        positions.push(
+          x0 + ledge, y0a, z0,
+          x1 + ledge1, y1a, z1,
+          x1 + ledge1, y1b, z1,
+          x0 + ledge, y0b, z0,
+        );
+        const u0 = i * 0.55;
+        uvs.push(u0, t0 * 3.2, u0 + 0.55, t0 * 3.2, u0 + 0.55, t1 * 3.2, u0, t1 * 3.2);
+        indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      }
     }
   };
 

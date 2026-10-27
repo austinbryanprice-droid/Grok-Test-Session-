@@ -277,27 +277,31 @@ function buildTreeImage(seed: number): Group {
   group.add(trunk);
 
   const clusters: Array<[number, number, number, number, number]> = [
-    [0, 2.35, 0, 0.95, 14],
-    [0.62, 1.95, 0.22, 0.62, 8],
-    [-0.58, 1.9, 0.12, 0.58, 8],
-    [0.08, 2.85, -0.18, 0.48, 6],
-    [-0.16, 1.55, 0.48, 0.42, 5],
-    [0.28, 1.5, -0.42, 0.4, 5],
+    [0, 2.45, 0, 1.15, 42],
+    [0.72, 2.05, 0.28, 0.78, 22],
+    [-0.66, 1.95, 0.14, 0.74, 22],
+    [0.1, 3.05, -0.22, 0.58, 16],
+    [-0.2, 1.55, 0.55, 0.5, 12],
+    [0.34, 1.48, -0.5, 0.48, 12],
+    [0.05, 2.2, 0.7, 0.42, 10],
   ];
   const parts: BufferGeometry[] = [];
   for (const [cx, cy, cz, spread, count] of clusters) {
     for (let i = 0; i < count; i += 1) {
+      const ox = (rand() - 0.5) * spread;
+      const oy = (rand() - 0.5) * spread * 0.7;
+      const oz = (rand() - 0.5) * spread;
+      const edge = Math.min(1, Math.hypot(ox, oy, oz) / (spread * 0.55));
       const color = new Color();
-      const yellow = rand() > 0.78;
-      color.setHSL(yellow ? 0.16 : 0.26 + rand() * 0.05, 0.42 + rand() * 0.16, 0.22 + rand() * 0.16);
-      const radius = 0.2 + rand() * 0.16;
-      const blob = new IcosahedronGeometry(radius, 1);
-      blob.scale(1, 0.72 + rand() * 0.2, 1);
-      blob.translate(
-        cx + (rand() - 0.5) * spread,
-        cy + (rand() - 0.5) * spread * 0.65,
-        cz + (rand() - 0.5) * spread,
+      const yellow = rand() > 0.84;
+      color.setHSL(
+        yellow ? 0.15 : 0.25 + rand() * 0.05,
+        0.4 + rand() * 0.18,
+        0.12 + edge * 0.28 + rand() * 0.06,
       );
+      const blob = new IcosahedronGeometry(0.09 + rand() * 0.11, 0);
+      blob.scale(1, 0.66 + rand() * 0.28, 1);
+      blob.translate(cx + ox, cy + oy, cz + oz);
       parts.push(paint(blob, color));
     }
   }
