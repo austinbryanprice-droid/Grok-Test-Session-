@@ -77,17 +77,16 @@ export function splatWeights(x: number, z: number): [number, number, number, num
   const path = 1 - smoothstep(1.15, 2.5, distToSegment(x, z, doorX, doorZ, bankX, home.z - 3));
   const yard = 1 - smoothstep(2.2, 6.4, Math.hypot(x - doorX, z - doorZ));
   const patch = smoothstep(0.58, 0.8, fbm(x * 0.07, z * 0.07));
-  let dirt = (1 - rock) * (1 - mud) * Math.max(path, yard * 0.8, smoothstep(0.28, 0.5, slope) * 0.55);
-  let grass = (1 - rock) * (1 - mud) * (1 - dirt);
-  dirt = Math.min(1, dirt + patch * grass * 0.45);
-  grass = Math.max(0, 1 - rock - mud - dirt);
+  let dirt = (1 - rock) * (1 - mud) * Math.max(path, yard * 0.45, smoothstep(0.34, 0.55, slope) * 0.25);
+  dirt = Math.min(1, dirt + patch * 0.08);
+  const grass = Math.max(0, (1 - rock) * (1 - mud) * (1 - dirt));
   const sum = grass + dirt + mud + rock || 1;
   return [grass / sum, dirt / sum, mud / sum, rock / sum];
 }
 
 export function inClearing(x: number, z: number): boolean {
   const home = settlement();
-  if (Math.hypot(x - home.x, z - home.z) < 12.5) return true;
+  if (Math.hypot(x - home.x, z - home.z) < 18) return true;
   const outX = home.x + 3.4;
   const outZ = home.z + 8.6;
   return Math.abs(x - outX) < 3.4 && Math.abs(z - outZ) < 3.2;

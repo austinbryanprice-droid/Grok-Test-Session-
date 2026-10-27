@@ -9,8 +9,8 @@ export function createAtmosphere(scene: Scene): { sky: Mesh; fill: HemisphereLig
 
   const sky = new Sky();
   const material = sky.material as ShaderMaterial;
-  material.uniforms.turbidity.value = 10;
-  material.uniforms.rayleigh.value = 2.5;
+  material.uniforms.turbidity.value = 4.2;
+  material.uniforms.rayleigh.value = 2.8;
   material.uniforms.mieCoefficient.value = 0.0065;
   material.uniforms.mieDirectionalG.value = 0.84;
   material.uniforms.sunPosition.value.copy(LIGHT_DIR).multiplyScalar(-1);
@@ -62,7 +62,7 @@ export function createAtmosphere(scene: Scene): { sky: Mesh; fill: HemisphereLig
   sky.frustumCulled = false;
   scene.add(sky);
 
-  const fill = new HemisphereLight(SKY_FILL, GROUND_BOUNCE, 0.36);
+  const fill = new HemisphereLight(SKY_FILL, GROUND_BOUNCE, 0.48);
   scene.add(fill);
   return { sky, fill };
 }

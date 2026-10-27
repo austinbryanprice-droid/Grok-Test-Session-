@@ -37,6 +37,7 @@ scene.add(foliage.trunks);
 scene.add(foliage.canopies);
 scene.add(foliage.shrubs);
 scene.add(foliage.grass);
+scene.add(foliage.wheat);
 const settlement = createSettlement(library);
 scene.add(settlement.object);
 const atmosphere = createAtmosphere(scene);
@@ -67,7 +68,7 @@ ShaderChunk.lights_fragment_begin = ShaderChunk.lights_fragment_begin.replaceAll
 for (const light of csm.lights) {
   light.color.copy(SUN_COLOR);
   light.shadow.normalBias = 0.04;
-  light.shadow.radius = 2.4;
+  light.shadow.radius = 0.85;
   light.shadow.mapSize.set(2048, 2048);
 }
 applyCSM(csm);

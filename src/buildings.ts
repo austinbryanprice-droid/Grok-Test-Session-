@@ -29,6 +29,7 @@ export function createSettlement(library: Library): Settlement {
   const wood = surface(library.wood, 0.3);
   const plaster = surface(library.plaster, 0.28);
   const roofMat = surface(library.roof, 0.32);
+  roofMat.color = new Color(0x6d7886);
   const doorMat = surface(library.wood, 0.25);
   doorMat.color = new Color(0x6a4632);
   const metal = lit({
@@ -173,6 +174,12 @@ export function createSettlement(library: Library): Settlement {
   outAdd(outRoofR);
   outAdd(box(0.12, 1.7, 0.9, doorMat, -2.05, 1.15, 0.2));
 
+  cottage(root, -7.5, -6, 0.4, stone, wood, plaster, roofMat);
+  cottage(root, 8, -5.5, -0.25, stone, wood, plaster, roofMat);
+  cottage(root, -7, 7.5, 0.15, stone, wood, plaster, roofMat);
+  cottage(root, 1.5, -9.5, 0.5, stone, wood, plaster, roofMat);
+  church(root, 7.2, -8.5, stone, roofMat);
+
   return {
     object: root,
     update(time: number) {
@@ -221,6 +228,74 @@ function box(
   const mesh = new Mesh(new BoxGeometry(w, h, d), material);
   mesh.position.set(x, y, z);
   return mesh;
+}
+
+function cottage(
+  parent: Group,
+  x: number,
+  z: number,
+  rot: number,
+  stone: MeshStandardMaterial,
+  wood: MeshStandardMaterial,
+  plaster: MeshStandardMaterial,
+  roof: MeshStandardMaterial,
+): void {
+  const group = new Group();
+  group.position.set(x, 0, z);
+  group.rotation.y = rot;
+  const put = (mesh: Mesh) => {
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  };
+  put(box(4.6, 0.35, 3.6, stone, 0, 0.18, 0));
+  put(box(4.1, 2.15, 3.15, plaster, 0, 1.4, 0));
+  for (const px of [-1.9, 1.9]) {
+    for (const pz of [-1.4, 1.4]) put(box(0.16, 2.15, 0.16, wood, px, 1.4, pz));
+  }
+  put(box(0.12, 0.12, 3.3, wood, -2.05, 2.45, 0));
+  put(box(0.12, 0.12, 3.3, wood, 2.05, 2.45, 0));
+  const rise = 1.35;
+  const run = 2.35;
+  const length = Math.hypot(run, rise);
+  const angle = Math.atan2(rise, run);
+  const left = box(length, 0.1, 3.9, roof, -run / 2, 2.55 + rise / 2, 0);
+  left.rotation.z = angle;
+  put(left);
+  const right = box(length, 0.1, 3.9, roof, run / 2, 2.55 + rise / 2, 0);
+  right.rotation.z = -angle;
+  put(right);
+  parent.add(group);
+}
+
+function church(
+  parent: Group,
+  x: number,
+  z: number,
+  stone: MeshStandardMaterial,
+  roof: MeshStandardMaterial,
+): void {
+  const group = new Group();
+  group.position.set(x, 0, z);
+  const put = (mesh: Mesh) => {
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  };
+  put(box(6.2, 0.4, 8.2, stone, 0, 0.2, 0));
+  put(box(5.6, 4.2, 7.4, stone, 0, 2.5, 0));
+  put(box(1.8, 2.6, 1.8, stone, 1.6, 5.6, -2.6));
+  const rise = 2.4;
+  const run = 3.2;
+  const length = Math.hypot(run, rise);
+  const angle = Math.atan2(rise, run);
+  const left = box(length, 0.12, 8.2, roof, -run / 2, 4.6 + rise / 2, 0);
+  left.rotation.z = angle;
+  put(left);
+  const right = box(length, 0.12, 8.2, roof, run / 2, 4.6 + rise / 2, 0);
+  right.rotation.z = -angle;
+  put(right);
+  parent.add(group);
 }
 
 function gable(z: number, material: MeshStandardMaterial, rise: number): Mesh {

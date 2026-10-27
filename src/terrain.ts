@@ -1,5 +1,5 @@
-import { Mesh, PlaneGeometry } from 'three';
-import { WORLD, computeHeight } from './field';
+import { Mesh, PlaneGeometry, Vector2 } from 'three';
+import { WORLD, computeHeight, settlement } from './field';
 import { lit } from './lit';
 import type { Library } from './textures';
 
@@ -57,6 +57,8 @@ export function createTerrain(library: Library): Mesh {
         shader.uniforms.uDirtNor = { value: library.dirt.normal };
         shader.uniforms.uRockNor = { value: library.rock.normal };
         shader.uniforms.uTime = time;
+        const home = settlement();
+        shader.uniforms.uWheat = { value: new Vector2(home.x + 12, home.z - 1) };
 
         const header = `
 uniform sampler2D uSplat;
@@ -67,6 +69,7 @@ uniform sampler2D uRockMap;
 uniform sampler2D uDirtNor;
 uniform sampler2D uRockNor;
 uniform float uTime;
+uniform vec2 uWheat;
 varying vec3 vWorld;
 `;
         shader.vertexShader = shader.vertexShader
@@ -86,7 +89,7 @@ varying vec3 vWorld;
 
   const mesh = new Mesh(geometry, material);
   mesh.receiveShadow = true;
-  mesh.castShadow = true;
+  mesh.castShadow = false;
   return mesh;
 }
 
@@ -110,15 +113,19 @@ vec4 grass = texture2D(map, detailUv);
 vec4 dirt = texture2D(uDirtMap, detailUv);
 vec4 mud = texture2D(uMudMap, detailUv * 0.85);
 vec4 rock = texture2D(uRockMap, detailUv * 0.72);
-vec3 albedo = grass.rgb * splat.r + dirt.rgb * splat.g + mud.rgb * splat.b + rock.rgb * splat.a;
-albedo = max(albedo, vec3(0.15, 0.18, 0.08));
 float broad = texture2D(uCloud, vWorld.xz * 0.012 + vec2(9.0, 3.0)).r;
-albedo *= vec3(mix(0.9, 1.06, broad), mix(0.92, 1.04, broad), mix(0.86, 0.98, broad));
+float wheat = 1.0 - smoothstep(4.0, 10.5, length(vWorld.xz - uWheat));
+vec3 meadow = mix(vec3(0.16, 0.78, 0.14), vec3(0.58, 0.7, 0.16), smoothstep(0.45, 0.82, broad));
+meadow = mix(meadow, grass.rgb, 0.12);
+meadow = mix(meadow, vec3(0.8, 0.62, 0.12), wheat);
+vec3 albedo = mix(meadow, vec3(0.48, 0.34, 0.14), splat.g);
+albedo = mix(albedo, mud.rgb, splat.b);
+albedo = mix(albedo, rock.rgb, splat.a);
 float cloudA = texture2D(uCloud, vWorld.xz * 0.007 + vec2(uTime * 0.004, uTime * 0.0012)).r;
 float cloudB = texture2D(uCloud, vWorld.xz * 0.016 + vec2(uTime * 0.006, -uTime * 0.002)).r;
 float cloud = smoothstep(0.18, 0.82, cloudA * 0.65 + cloudB * 0.35);
-albedo *= mix(0.72, 1.0, cloud);
-diffuseColor.rgb *= albedo;
+albedo *= mix(0.84, 1.0, cloud);
+diffuseColor.rgb = albedo;
 }
 `;
 

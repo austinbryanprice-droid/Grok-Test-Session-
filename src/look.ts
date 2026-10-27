@@ -8,5 +8,5 @@ export const LIGHT_DIR = new Vector3(0.8, -0.2, 0.42).normalize();
 
 export const SUN_COLOR = new Color(0xffc48a);
 export const CLOUD_SUN_COLOR = new Color(0xc9b3a2);
-export const SKY_FILL = new Color(0xffd2a6);
+export const SKY_FILL = new Color(0xd5e4f2);
 export const GROUND_BOUNCE = new Color(0x6d7348);

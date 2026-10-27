@@ -1,15 +1,16 @@
 import {
   BufferAttribute,
   BufferGeometry,
+  Color,
+  CylinderGeometry,
   DoubleSide,
   FrontSide,
   IcosahedronGeometry,
   InstancedMesh,
   MeshStandardMaterial,
   Object3D,
-  CylinderGeometry,
-  Color,
 } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WORLD, computeHeight, inClearing, settlement, slopeAt, splatWeights, WATER_Y } from './field';
 import { lit } from './lit';
 import { mulberry32, noise2 } from './noise';
@@ -21,7 +22,13 @@ export function foliageTime(): { value: number } {
   return windTime;
 }
 
-export function createFoliage(library: Library): { trunks: InstancedMesh; canopies: InstancedMesh; shrubs: InstancedMesh; grass: InstancedMesh } {
+export function createFoliage(library: Library): {
+  trunks: InstancedMesh;
+  canopies: InstancedMesh;
+  shrubs: InstancedMesh;
+  grass: InstancedMesh;
+  wheat: InstancedMesh;
+} {
   const wood = lit({
     map: library.wood.color,
     normalMap: library.wood.normal,
@@ -83,7 +90,7 @@ export function createFoliage(library: Library): { trunks: InstancedMesh; canopi
     dummy.scale.set(tree.scale * tree.wide, tree.scale * 0.82, tree.scale * tree.wide);
     dummy.updateMatrix();
     canopies.setMatrixAt(i, dummy.matrix);
-    color.setHSL(0.2 + tree.hue, 0.42, 0.28);
+    color.setHSL(0.22 + tree.hue, 0.48, 0.32);
     canopies.setColorAt(i, color);
   }
   trunks.castShadow = true;
@@ -115,15 +122,41 @@ export function createFoliage(library: Library): { trunks: InstancedMesh; canopi
     const blade = blades[i];
     dummy.position.set(blade.x, blade.y, blade.z);
     dummy.rotation.set(0, blade.rot, 0);
-    dummy.scale.setScalar(blade.scale);
+    dummy.scale.setScalar(blade.scale * 1.7);
     dummy.updateMatrix();
     grass.setMatrixAt(i, dummy.matrix);
-    color.setHSL(0.22 + blade.hue, 0.45, 0.24);
+    color.setHSL(0.28 + blade.hue, 0.55, 0.42);
     grass.setColorAt(i, color);
   }
   grass.receiveShadow = true;
   grass.frustumCulled = false;
-  return { trunks, canopies, shrubs, grass };
+
+  const wheatSpots = placeWheat();
+  const wheatMat = lit(
+    {
+      map: library.grassClump,
+      color: 0xe0b24a,
+      alphaTest: 0.4,
+      roughness: 0.85,
+      metalness: 0,
+      side: DoubleSide,
+      shadowSide: FrontSide,
+    },
+    (material) => bindWind(material, 0.2, true),
+  );
+  const wheat = new InstancedMesh(grassGeometry(), wheatMat, Math.max(1, wheatSpots.length));
+  for (let i = 0; i < wheatSpots.length; i += 1) {
+    const blade = wheatSpots[i];
+    dummy.position.set(blade.x, blade.y, blade.z);
+    dummy.rotation.set(0, blade.rot, 0);
+    dummy.scale.set(blade.scale, blade.scale * 1.35, blade.scale);
+    dummy.updateMatrix();
+    wheat.setMatrixAt(i, dummy.matrix);
+  }
+  wheat.count = wheatSpots.length;
+  wheat.receiveShadow = true;
+  wheat.frustumCulled = false;
+  return { trunks, canopies, shrubs, grass, wheat };
 }
 
 function bindWind(material: MeshStandardMaterial, amount: number, liftNormal = false): void {
@@ -159,19 +192,31 @@ function bindWind(material: MeshStandardMaterial, amount: number, liftNormal = f
 }
 
 function leafGeometry(): BufferGeometry {
-  const geometry = new IcosahedronGeometry(1.2, 2);
+  const lobes: Array<[number, number, number, number, number, number]> = [
+    [0, 0.35, 0, 1.05, 0.78, 1.0],
+    [0.72, 0.15, 0.18, 0.7, 0.55, 0.68],
+    [-0.68, 0.12, 0.22, 0.66, 0.52, 0.64],
+    [0.12, 0.55, -0.58, 0.62, 0.5, 0.6],
+    [-0.08, 0.05, 0.7, 0.58, 0.46, 0.56],
+  ];
+  const parts = lobes.map(([x, y, z, sx, sy, sz]) => {
+    const geometry = new IcosahedronGeometry(1, 3);
+    geometry.scale(sx, sy, sz);
+    geometry.translate(x, y, z);
+    return geometry;
+  });
+  const geometry = mergeGeometries(parts, false);
   const position = geometry.attributes.position;
   const colors = new Float32Array(position.count * 3);
   for (let i = 0; i < position.count; i += 1) {
     const x = position.getX(i);
     const y = position.getY(i);
     const z = position.getZ(i);
-    const n = noise2(x * 2.1 + 2, z * 1.8);
-    position.setXYZ(i, x * (1 + n * 0.22), y * 0.7, z * (1 + (1 - n) * 0.18));
-    const shade = Math.max(0.38, Math.min(1, 0.48 + y * 0.42));
+    const n = noise2(x * 1.6, z * 1.6);
+    const shade = Math.max(0.42, Math.min(1, 0.5 + y * 0.38 + n * 0.12));
     colors[i * 3] = shade;
-    colors[i * 3 + 1] = shade;
-    colors[i * 3 + 2] = shade * 0.9;
+    colors[i * 3 + 1] = shade * 0.98;
+    colors[i * 3 + 2] = shade * 0.82;
   }
   geometry.setAttribute('color', new BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
@@ -226,13 +271,36 @@ function placeShrubs(): Spot[] {
   return spots;
 }
 
+function placeWheat(): Spot[] {
+  const home = settlement();
+  const rand = mulberry32(77);
+  const spots: Spot[] = [];
+  for (let z = -5.5; z <= 5.5; z += 0.52) {
+    for (let x = 7; x <= 16; x += 0.46) {
+      const px = home.x + x + (rand() - 0.5) * 0.18;
+      const pz = home.z + z + (rand() - 0.5) * 0.18;
+      spots.push({
+        x: px,
+        y: computeHeight(px, pz) + 0.03,
+        z: pz,
+        rot: rand() * Math.PI,
+        scale: 0.9 + rand() * 0.5,
+        wide: 1,
+        hue: 0,
+      });
+    }
+  }
+  return spots;
+}
+
 function placeGrass(): Spot[] {
   const rand = mulberry32(41);
+  const home = settlement();
   const spots: Spot[] = [];
-  const stride = 2.1;
-  for (let z = -WORLD / 2; z < WORLD / 2 && spots.length < 6500; z += stride) {
-    for (let x = -WORLD / 2; x < WORLD / 2 && spots.length < 6500; x += stride) {
-      if (rand() > 0.55) continue;
+  const stride = 1.25;
+  for (let z = home.z - 48; z < home.z + 48 && spots.length < 9000; z += stride) {
+    for (let x = home.x - 55; x < home.x + 40 && spots.length < 9000; x += stride) {
+      if (rand() > 0.42) continue;
       const px = x + (rand() - 0.5) * stride * 1.6;
       const pz = z + (rand() - 0.5) * stride * 1.6;
       const y = computeHeight(px, pz);
