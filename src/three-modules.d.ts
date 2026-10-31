@@ -6,6 +6,7 @@ declare module 'three/webgpu' {
     anyValue as Matrix4,
     anyValue as CylinderGeometry,
     anyValue as MeshStandardMaterial,
+    anyValue as MeshBasicMaterial,
     anyValue as InstancedMesh,
     anyValue as InstancedBufferAttribute,
     anyValue as CanvasTexture,

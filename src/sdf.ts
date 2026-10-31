@@ -283,6 +283,19 @@ export const FANGS: Array<{ x: number; y: number; z: number; down: boolean; leng
   { x: 0.026, y: 0.698, z: -1.14, down: false, length: 0.032 },
 ];
 
+// ConeGeometry is centered, apex toward +Y. A down fang's tip is half a length below the point.
+export function fangTip(fang: { x: number; y: number; z: number; down: boolean; length: number }): {
+  x: number;
+  y: number;
+  z: number;
+} {
+  return {
+    x: fang.x,
+    y: fang.y + (fang.down ? -fang.length / 2 : fang.length / 2),
+    z: fang.z,
+  };
+}
+
 export function werewolfRegion(x: number, y: number, z: number): 'fur' | 'mane' | 'skin' | 'nose' | 'lip' {
   const headForward = -(z + 0.7);
   const headY = y - 0.78;

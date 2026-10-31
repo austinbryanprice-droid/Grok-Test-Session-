@@ -293,12 +293,16 @@ function addClaws(parent: any, side: number, foot: boolean): void {
 }
 
 function addTeeth(parent: any): void {
-  const material = new THREE.MeshStandardMaterial({ color: 0xfff4e4, roughness: 0.32, metalness: 0.02 });
+  // Unlit ivory. A lit fang in this cool, shadowed mouth collapses to a few gray pixels.
+  // Basic material writes no emissive, so the bloom pass leaves the teeth alone.
+  const material = new THREE.MeshBasicMaterial({ color: 0xfff4e4 });
+  material.toneMapped = false;
   for (const fang of FANGS) {
-    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.008, fang.length, 5), material);
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.022, fang.length, 6), material);
     tooth.position.set(fang.x - HEAD_ORIGIN.x, fang.y - HEAD_ORIGIN.y, fang.z - HEAD_ORIGIN.z);
     tooth.rotation.x = fang.down ? Math.PI : 0;
     tooth.castShadow = false;
+    tooth.receiveShadow = false;
     parent.add(tooth);
   }
 }
