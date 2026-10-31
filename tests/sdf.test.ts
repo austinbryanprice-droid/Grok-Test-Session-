@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { sdWerewolf, surfaceNet } from '../src/sdf.ts';
+import { FANGS, sdWerewolf, surfaceNet } from '../src/sdf.ts';
 
 function sphere(x: number, y: number, z: number): number {
   return Math.hypot(x, y, z) - 1;
@@ -28,7 +28,7 @@ assert.ok(radius > 0.9 && radius < 1.1, `sphere radius ${radius}`);
 assert.ok(outward > 0.8, `normals point inward (${outward})`);
 
 const skull = [0, 0.78, -0.7];
-const muzzle = [0, 0.76, -1.22];
+const muzzle = [0, 0.8, -1.15];
 const hand = [0.18, 0.07, -0.9];
 assert.ok(sdWerewolf(0, 0.55, -0.32) < 0, 'chest of the low crouch should be inside');
 assert.ok(sdWerewolf(skull[0], skull[1], skull[2]) < 0, 'skull should be inside');
@@ -45,5 +45,10 @@ for (let y = 0.6; y <= 0.95; y += 0.04) {
   }
 }
 assert.ok(noseZ < skull[2] - 0.35, `muzzle tip ${noseZ} is not farther on -z than the skull ${skull[2]}`);
+assert.ok(sdWerewolf(0, 0.72, -1.1) > 0, 'the mouth slot should be open air');
+for (const fang of FANGS) {
+  const gap = sdWerewolf(fang.x, fang.y, fang.z);
+  assert.ok(gap > 0, `fang (${fang.x}, ${fang.y}, ${fang.z}) is inside the snout (${gap})`);
+}
 
 console.log(`sdf tests passed (${count} sphere verts, muzzle tip z=${noseZ.toFixed(2)})`);

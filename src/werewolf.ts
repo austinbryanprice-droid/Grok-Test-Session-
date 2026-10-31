@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import { createStrand, stepStrand, type Strand } from './cloth.ts';
-import { sdWerewolf, surfaceNet, werewolfRegion, type Vec3 } from './sdf.ts';
+import { FANGS, HEAD_ORIGIN, sdWerewolf, surfaceNet, werewolfRegion, type Vec3 } from './sdf.ts';
 
 type Joint = { name: string; parent: string | null; pos: Vec3 };
 
@@ -292,12 +292,13 @@ function addClaws(parent: any, side: number, foot: boolean): void {
   }
 }
 
-function addTeeth(parent: any, lower: boolean): void {
-  const material = new THREE.MeshStandardMaterial({ color: 0xe6dcc8, roughness: 0.45, metalness: 0.02 });
-  for (let i = 0; i < 6; i += 1) {
-    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.008, i === 0 || i === 5 ? 0.055 : 0.032, 4), material);
-    tooth.position.set((i - 2.5) * 0.014, lower ? 0.02 : -0.02, lower ? -0.04 : -0.36);
-    tooth.rotation.x = lower ? 0 : Math.PI;
+function addTeeth(parent: any): void {
+  const material = new THREE.MeshStandardMaterial({ color: 0xfff4e4, roughness: 0.32, metalness: 0.02 });
+  for (const fang of FANGS) {
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.008, fang.length, 5), material);
+    tooth.position.set(fang.x - HEAD_ORIGIN.x, fang.y - HEAD_ORIGIN.y, fang.z - HEAD_ORIGIN.z);
+    tooth.rotation.x = fang.down ? Math.PI : 0;
+    tooth.castShadow = false;
     parent.add(tooth);
   }
 }
@@ -310,7 +311,7 @@ export type Werewolf = {
 export function createWerewolf(): Werewolf {
   const boundsMin: Vec3 = [-0.7, -0.02, -1.55];
   const boundsMax: Vec3 = [0.7, 1.05, 0.95];
-  const net = surfaceNet([40, 44, 64], sdWerewolf, boundsMin, boundsMax);
+  const net = surfaceNet([42, 58, 70], sdWerewolf, boundsMin, boundsMax);
   const segments = buildSegments();
   const vertexCount = net.positions.length / 3;
   const colors = new Float32Array(vertexCount * 3);
@@ -397,8 +398,7 @@ export function createWerewolf(): Werewolf {
   addEye(head, -0.055);
   addEye(head, 0.055);
   addEars(head);
-  addTeeth(head, false);
-  addTeeth(jaw, true);
+  addTeeth(head);
   addClaws(handL, 1, false);
   addClaws(handR, -1, false);
   addClaws(pawL, 1, true);
@@ -447,7 +447,7 @@ export function createWerewolf(): Werewolf {
     const tail2 = boneObjects.get('tail2');
     const tail3 = boneObjects.get('tail3');
     if (spine) spine.rotation.x = Math.sin(time * 1.7) * 0.035;
-    jaw.rotation.x = -0.5 + Math.sin(time * 1.4) * 0.02;
+    jaw.rotation.x = -0.18 + Math.sin(time * 1.4) * 0.02;
     if (tail1 && tail2 && tail3) {
       tail1.rotation.y = Math.sin(time * 1.8) * 0.18;
       tail2.rotation.y = Math.sin(time * 1.8 + 0.6) * 0.22;

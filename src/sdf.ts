@@ -249,25 +249,39 @@ export function sdWerewolf(x: number, y: number, z: number): number {
   const hy = y - 0.78;
   const hz = z + 0.7;
   const skull = sdEllipsoid(hx, hy, hz, 0.13, 0.115, 0.13);
-  const muzzle = sdEllipsoid(hx, hy + 0.02, hz + 0.38, 0.068, 0.052, 0.32);
+  const muzzle = sdEllipsoid(hx, hy - 0.02, hz + 0.38, 0.064, 0.042, 0.32);
   const brow = sdEllipsoid(hx, hy - 0.055, hz + 0.08, 0.11, 0.032, 0.05);
-  const jaw = sdEllipsoid(hx, hy + 0.07, hz + 0.3, 0.06, 0.042, 0.18);
+  const jaw = sdEllipsoid(hx, hy + 0.12, hz + 0.32, 0.055, 0.032, 0.2);
   const cheekL = sdEllipsoid(hx - 0.07, hy + 0.01, hz + 0.06, 0.04, 0.035, 0.045);
   const cheekR = sdEllipsoid(hx + 0.07, hy + 0.01, hz + 0.06, 0.04, 0.035, 0.045);
   let head = smin(skull, muzzle, 0.045);
   head = smin(head, brow, 0.025);
-  head = smin(head, jaw, 0.03);
+  head = smin(head, jaw, 0.01);
   head = smin(head, cheekL, 0.025);
   head = smin(head, cheekR, 0.025);
   const eyeL = sdSphere(hx - 0.048, hy - 0.005, hz + 0.11, 0.026);
   const eyeR = sdSphere(hx + 0.048, hy - 0.005, hz + 0.11, 0.026);
   head = smax(head, -eyeL, 0.008);
   head = smax(head, -eyeR, 0.008);
-  const mouth = sdEllipsoid(hx, hy + 0.055, hz + 0.36, 0.042, 0.018, 0.16);
-  head = smax(head, -mouth, 0.006);
+  // Slot thicker than a surface-net cell, so the snout stays split into lip and jaw.
+  const mouth = sdCapsule(x, y, z, 0, 0.72, -0.96, 0, 0.72, -1.22, 0.042);
+  head = smax(head, -mouth, 0.01);
   body = smin(body, head, 0.04);
   return body;
 }
+
+export const HEAD_ORIGIN = { x: 0, y: 0.78, z: -0.7 };
+
+// Character-space points that sit in the open mouth. Teeth are mounted on these.
+export const FANGS: Array<{ x: number; y: number; z: number; down: boolean; length: number }> = [
+  { x: -0.038, y: 0.748, z: -1.16, down: true, length: 0.05 },
+  { x: -0.014, y: 0.752, z: -1.18, down: true, length: 0.034 },
+  { x: 0.014, y: 0.752, z: -1.18, down: true, length: 0.034 },
+  { x: 0.038, y: 0.748, z: -1.16, down: true, length: 0.05 },
+  { x: -0.026, y: 0.698, z: -1.14, down: false, length: 0.032 },
+  { x: 0, y: 0.694, z: -1.16, down: false, length: 0.03 },
+  { x: 0.026, y: 0.698, z: -1.14, down: false, length: 0.032 },
+];
 
 export function werewolfRegion(x: number, y: number, z: number): 'fur' | 'mane' | 'skin' | 'nose' | 'lip' {
   const headForward = -(z + 0.7);
