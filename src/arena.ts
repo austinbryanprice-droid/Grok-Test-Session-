@@ -8,12 +8,12 @@ function marbleTexture(): any {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('marble canvas unavailable');
-  ctx.fillStyle = '#d8d2c6';
+  ctx.fillStyle = '#3c403c';
   ctx.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 36; i += 1) {
     const x = (i * 73) % 256;
     const y = (i * 41) % 256;
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(118, 110, 98, 0.28)' : 'rgba(236, 230, 220, 0.5)';
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(22, 24, 28, 0.45)' : 'rgba(92, 96, 102, 0.28)';
     ctx.beginPath();
     ctx.ellipse(x, y, 16 + (i % 5) * 9, 7 + (i % 4) * 4, (i % 7) * 0.45, 0, Math.PI * 2);
     ctx.fill();
@@ -52,11 +52,11 @@ export function createArena(): Arena {
   const group = new THREE.Group();
   const marble = new THREE.MeshStandardMaterial({
     map: marbleTexture(),
-    color: 0xf2efe8,
+    color: 0x6e726e,
     roughness: 0.62,
     metalness: 0.02,
   });
-  const stone = new THREE.MeshStandardMaterial({ color: 0x8d8478, roughness: 0.9, metalness: 0.02 });
+  const stone = new THREE.MeshStandardMaterial({ color: 0x3a3e44, roughness: 0.94, metalness: 0.02 });
 
   const floor = new THREE.Mesh(new THREE.CylinderGeometry(9, 9.4, 0.35, 48), marble);
   floor.position.y = -0.18;
@@ -67,7 +67,7 @@ export function createArena(): Arena {
   for (let i = 0; i < 8; i += 1) {
     const angle = (i / 8) * Math.PI * 2;
     const column = new THREE.CylinderGeometry(0.28, 0.32, 4.2, 10);
-    column.translate(Math.cos(angle) * 6.4, 2.05, Math.sin(angle) * 6.4);
+    column.translate(Math.cos(angle) * 4.2, 2.05, Math.sin(angle) * 4.2);
     nearColumns.push(column);
   }
   const near = new THREE.Mesh(mergeGeometries(nearColumns), marble);
@@ -103,7 +103,7 @@ export function createArena(): Arena {
   grassGeo.translate(0, 0.08, 0);
   const grass = new THREE.InstancedMesh(
     grassGeo,
-    new THREE.MeshStandardMaterial({ color: 0x3f7a32, roughness: 0.95, metalness: 0 }),
+    new THREE.MeshStandardMaterial({ color: 0x1a2820, roughness: 1, metalness: 0 }),
     80,
   );
   grass.castShadow = false;
@@ -164,7 +164,7 @@ export function createArena(): Arena {
   lip.position.set(2.05, 0.16, 1.45);
   const water = new THREE.Mesh(
     new THREE.CircleGeometry(1.02, 24),
-    new THREE.MeshStandardMaterial({ color: 0x6ea8b8, roughness: 0.18, metalness: 0.05, envMapIntensity: 0.8 }),
+    new THREE.MeshStandardMaterial({ color: 0x24343c, roughness: 0.35, metalness: 0.04, envMapIntensity: 0.25 }),
   );
   water.rotation.x = -Math.PI / 2;
   water.position.set(2.05, 0.15, 1.45);

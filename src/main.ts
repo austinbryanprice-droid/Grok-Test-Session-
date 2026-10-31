@@ -15,7 +15,7 @@ function setText(node: Element | null, text: string): void {
 }
 
 function envMap(): any {
-  const faces = ['#f4d7b0', '#9eb6d4', '#f7f1e6', '#3a2c24', '#e7d3b0', '#d5e2f0'];
+  const faces = ['#2a3340', '#1a2430', '#303848', '#12100e', '#243044', '#1c2834'];
   const images = faces.map((color) => {
     const canvas = document.createElement('canvas');
     canvas.width = 32;
@@ -68,23 +68,23 @@ async function main(): Promise<void> {
   await renderer.init();
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xc5ced6);
-  scene.fog = new THREE.Fog(0xc5ced6, 30, 78);
+  scene.background = new THREE.Color(0x1a2430);
+  scene.fog = new THREE.Fog(0x1a2430, 8, 26);
   scene.environment = envMap();
-  scene.environmentIntensity = 1;
+  scene.environmentIntensity = 0.35;
 
-  const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.08, 120);
-  // Group yaw +0.7 sends local -z toward (-0.64, 0, -0.77). Sit off that ray, low, so the snout has length.
-  camera.position.set(-2.4, 0.7, -2.15);
+  const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.08, 80);
+  // Group yaw +0.18 sends local -z toward about (-0.18, 0, -0.98). Sit just off that ray.
+  camera.position.set(-0.9, 0.78, -2.7);
   const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0.05, 0.74, -0.2);
+  controls.target.set(-0.05, 0.5, -0.6);
   controls.enableDamping = true;
   controls.maxDistance = 12;
   controls.minDistance = 1.6;
   controls.update();
 
-  const sun = new THREE.DirectionalLight(0xffe0b8, 3.1);
-  sun.position.set(4.5, 9.5, -3.5);
+  const sun = new THREE.DirectionalLight(0xd5e2f6, 2.8);
+  sun.position.set(-0.5, 2.8, -3.1);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.near = 2;
@@ -95,10 +95,10 @@ async function main(): Promise<void> {
   sun.shadow.camera.bottom = -2.6;
   sun.shadow.bias = -0.0002;
   sun.shadow.normalBias = 0.025;
-  sun.target.position.set(0, 0.7, -0.2);
-  const fill = new THREE.DirectionalLight(0xb7cbe2, 1.15);
-  fill.position.set(-7, 5.5, 6);
-  const hemi = new THREE.HemisphereLight(0xd5e2f2, 0x3a2a22, 0.45);
+  sun.target.position.set(-0.1, 0.5, -0.4);
+  const fill = new THREE.DirectionalLight(0x8aa4c4, 0.7);
+  fill.position.set(2.2, 1.6, 1.2);
+  const hemi = new THREE.HemisphereLight(0x31445c, 0x1a1410, 0.55);
   scene.add(sun, sun.target, fill, hemi);
 
   const arena = createArena();

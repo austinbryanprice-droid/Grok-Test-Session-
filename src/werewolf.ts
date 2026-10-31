@@ -5,27 +5,27 @@ import { sdWerewolf, surfaceNet, werewolfRegion, type Vec3 } from './sdf.ts';
 type Joint = { name: string; parent: string | null; pos: Vec3 };
 
 const JOINTS: Joint[] = [
-  { name: 'hips', parent: null, pos: [0, 0.55, 0.15] },
-  { name: 'spine', parent: 'hips', pos: [0, 0.64, -0.02] },
-  { name: 'chest', parent: 'spine', pos: [0, 0.8, -0.28] },
-  { name: 'neck', parent: 'chest', pos: [0, 0.93, -0.41] },
-  { name: 'head', parent: 'neck', pos: [0, 1.04, -0.55] },
-  { name: 'jaw', parent: 'head', pos: [0, 0.96, -0.83] },
-  { name: 'shoulderL', parent: 'chest', pos: [0.36, 0.86, -0.2] },
-  { name: 'elbowL', parent: 'shoulderL', pos: [0.52, 0.42, -0.55] },
-  { name: 'handL', parent: 'elbowL', pos: [0.58, 0.08, -0.9] },
-  { name: 'shoulderR', parent: 'chest', pos: [-0.36, 0.86, -0.2] },
-  { name: 'elbowR', parent: 'shoulderR', pos: [-0.52, 0.42, -0.55] },
-  { name: 'handR', parent: 'elbowR', pos: [-0.58, 0.08, -0.9] },
-  { name: 'hipL', parent: 'hips', pos: [0.15, 0.5, 0.1] },
-  { name: 'hockL', parent: 'hipL', pos: [0.22, 0.3, 0.34] },
-  { name: 'pawL', parent: 'hockL', pos: [0.16, 0.06, -0.12] },
-  { name: 'hipR', parent: 'hips', pos: [-0.15, 0.5, 0.1] },
-  { name: 'hockR', parent: 'hipR', pos: [-0.22, 0.3, 0.34] },
-  { name: 'pawR', parent: 'hockR', pos: [-0.16, 0.06, -0.12] },
-  { name: 'tail1', parent: 'hips', pos: [0, 0.48, 0.22] },
-  { name: 'tail2', parent: 'tail1', pos: [0.04, 0.34, 0.5] },
-  { name: 'tail3', parent: 'tail2', pos: [0.1, 0.26, 0.82] },
+  { name: 'hips', parent: null, pos: [0, 0.4, 0.22] },
+  { name: 'spine', parent: 'hips', pos: [0, 0.46, -0.02] },
+  { name: 'chest', parent: 'spine', pos: [0, 0.55, -0.32] },
+  { name: 'neck', parent: 'chest', pos: [0, 0.66, -0.5] },
+  { name: 'head', parent: 'neck', pos: [0, 0.78, -0.7] },
+  { name: 'jaw', parent: 'head', pos: [0, 0.71, -1.0] },
+  { name: 'shoulderL', parent: 'chest', pos: [0.22, 0.6, -0.18] },
+  { name: 'elbowL', parent: 'shoulderL', pos: [0.26, 0.32, -0.5] },
+  { name: 'handL', parent: 'elbowL', pos: [0.2, 0.07, -0.96] },
+  { name: 'shoulderR', parent: 'chest', pos: [-0.22, 0.6, -0.18] },
+  { name: 'elbowR', parent: 'shoulderR', pos: [-0.26, 0.32, -0.5] },
+  { name: 'handR', parent: 'elbowR', pos: [-0.2, 0.07, -0.96] },
+  { name: 'hipL', parent: 'hips', pos: [0.11, 0.36, 0.16] },
+  { name: 'hockL', parent: 'hipL', pos: [0.15, 0.22, 0.36] },
+  { name: 'pawL', parent: 'hockL', pos: [0.11, 0.05, -0.02] },
+  { name: 'hipR', parent: 'hips', pos: [-0.11, 0.36, 0.16] },
+  { name: 'hockR', parent: 'hipR', pos: [-0.15, 0.22, 0.36] },
+  { name: 'pawR', parent: 'hockR', pos: [-0.11, 0.05, -0.02] },
+  { name: 'tail1', parent: 'hips', pos: [0, 0.34, 0.3] },
+  { name: 'tail2', parent: 'tail1', pos: [0.02, 0.22, 0.52] },
+  { name: 'tail3', parent: 'tail2', pos: [0.08, 0.16, 0.78] },
 ];
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -82,7 +82,7 @@ function distanceToSegment(x: number, y: number, z: number, segment: Segment): n
 }
 
 function skinWeights(x: number, y: number, z: number, segments: Segment[]): [number, number, number, number] {
-  if (y < 1.0 && y > 0.86 && z < -0.7 && Math.abs(x) < 0.09) {
+  if (y < 0.76 && y > 0.64 && z < -0.88 && Math.abs(x) < 0.08) {
     const jaw = JOINTS.findIndex((joint) => joint.name === 'jaw');
     return [jaw, 0, 1, 0];
   }
@@ -110,14 +110,14 @@ function skinWeights(x: number, y: number, z: number, segments: Segment[]): [num
 
 function colorFor(x: number, y: number, z: number, nx: number, ny: number, nz: number): [number, number, number] {
   const region = werewolfRegion(x, y, z);
-  let r = 0.16;
-  let g = 0.09;
-  let b = 0.05;
-  if (region === 'mane') { r = 0.06; g = 0.035; b = 0.025; }
-  if (region === 'skin') { r = 0.3; g = 0.18; b = 0.11; }
-  if (region === 'nose') { r = 0.03; g = 0.02; b = 0.018; }
-  if (region === 'lip') { r = 0.38; g = 0.12; b = 0.1; }
-  if (region === 'fur' && ny < -0.2 && y < 0.85) { r = 0.32; g = 0.18; b = 0.1; }
+  let r = 0.11;
+  let g = 0.062;
+  let b = 0.04;
+  if (region === 'mane') { r = 0.03; g = 0.018; b = 0.014; }
+  if (region === 'skin') { r = 0.1; g = 0.055; b = 0.035; }
+  if (region === 'nose') { r = 0.02; g = 0.014; b = 0.012; }
+  if (region === 'lip') { r = 0.2; g = 0.06; b = 0.05; }
+  if (region === 'fur' && ny < -0.25 && y < 0.55) { r = 0.1; g = 0.055; b = 0.035; }
   const cavity = (nz < -0.65 && z < -0.35) ? 0.72 : 1;
   const ao = (0.58 + 0.42 * Math.min(1, Math.max(0, ny * 0.45 + 0.55))) * cavity;
   return [r * ao, g * ao, b * ao];
@@ -140,7 +140,7 @@ function collectClumps(positions: Float32Array, normals: Float32Array): { body: 
     const region = werewolfRegion(x, y, z);
     if (region === 'nose' || region === 'lip' || region === 'skin') continue;
     if (region !== 'mane') continue;
-    if (y > 1.02 || y < 0.75 || z < -0.15) continue;
+    if (y > 0.84 || y < 0.48 || z < -0.42) continue;
     const [bone] = skinWeights(x, y, z, segments);
     const joint = JOINTS[bone];
     const clump: Clump = {
@@ -149,13 +149,13 @@ function collectClumps(positions: Float32Array, normals: Float32Array): { body: 
       y: y - joint.pos[1],
       z: z - joint.pos[2],
       nx, ny, nz,
-      length: 0.035,
-      radius: 0.045,
+      length: 0.02,
+      radius: 0.022,
     };
     if (region === 'mane') mane.push(clump);
     else body.push(clump);
   }
-  return { body: [], mane: mane.slice(0, 24) };
+  return { body: [], mane: mane.slice(0, 90) };
 }
 
 function makeFur(clumps: Clump[], bones: any[]): any {
@@ -175,7 +175,7 @@ function makeFur(clumps: Clump[], bones: any[]): any {
   mesh.userData.bones = bones;
   mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(clumps.length * 3), 3);
   for (let i = 0; i < clumps.length; i += 1) {
-    const shade = clumps[i].length > 0.07 ? 0.07 : 0.11 + (i % 5) * 0.012;
+    const shade = 0.035 + (i % 4) * 0.008;
     mesh.instanceColor.setXYZ(i, shade, shade * 0.55, shade * 0.32);
   }
   return mesh;
@@ -235,20 +235,20 @@ function irisTexture(): any {
 
 function addEye(parent: any, x: number): void {
   const sclera = new THREE.Mesh(
-    new THREE.SphereGeometry(0.034, 16, 12),
+    new THREE.SphereGeometry(0.028, 16, 12),
     new THREE.MeshStandardMaterial({ color: 0x6d5434, roughness: 0.55, metalness: 0 }),
   );
-  sclera.position.set(x, 0.0, -0.2);
+  sclera.position.set(x, 0.045, -0.18);
   sclera.castShadow = false;
   sclera.scale.set(1, 0.85, 0.7);
   const socket = new THREE.Mesh(
     new THREE.SphereGeometry(0.038, 12, 10),
     new THREE.MeshStandardMaterial({ color: 0x140d0a, roughness: 1, metalness: 0 }),
   );
-  socket.position.set(x, -0.005, -0.16);
+  socket.position.set(x, 0.04, -0.15);
   socket.scale.z = 0.45;
   const iris = new THREE.Mesh(
-    new THREE.CircleGeometry(0.02, 20),
+    new THREE.CircleGeometry(0.018, 20),
     new THREE.MeshStandardMaterial({
       map: irisTexture(),
       roughness: 0.32,
@@ -256,7 +256,7 @@ function addEye(parent: any, x: number): void {
       envMapIntensity: 0.7,
     }),
   );
-  iris.position.set(x, 0.004, -0.232);
+  iris.position.set(x, 0.048, -0.204);
   iris.rotation.y = Math.PI;
   parent.add(socket, sclera, iris);
 }
@@ -264,8 +264,8 @@ function addEye(parent: any, x: number): void {
 function addEars(parent: any): void {
   const material = new THREE.MeshStandardMaterial({ color: 0x2a1810, roughness: 0.92, metalness: 0 });
   for (const side of [-1, 1]) {
-    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.2, 4), material);
-    ear.position.set(side * 0.09, 0.13, 0.02);
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.16, 4), material);
+    ear.position.set(side * 0.07, 0.11, 0.03);
     ear.rotation.z = side * -0.4;
     ear.rotation.x = -0.25;
     ear.castShadow = false;
@@ -275,14 +275,14 @@ function addEars(parent: any): void {
 
 function addClaws(parent: any, side: number, foot: boolean): void {
   const material = new THREE.MeshStandardMaterial({
-    color: 0xc2b49a,
+    color: 0x8d846c,
     roughness: 0.38,
     metalness: 0.18,
     envMapIntensity: 1.1,
   });
   const count = foot ? 3 : 4;
   for (let i = 0; i < count; i += 1) {
-    const claw = new THREE.Mesh(new THREE.ConeGeometry(0.016, foot ? 0.07 : 0.11, 5), material);
+    const claw = new THREE.Mesh(new THREE.ConeGeometry(0.012, foot ? 0.055 : 0.13, 5), material);
     const spread = (i - (count - 1) / 2) * 0.028;
     claw.position.set(spread, foot ? -0.02 : -0.03, foot ? -0.1 : -0.09);
     claw.rotation.x = foot ? Math.PI * 0.55 : Math.PI * 0.62;
@@ -295,8 +295,8 @@ function addClaws(parent: any, side: number, foot: boolean): void {
 function addTeeth(parent: any, lower: boolean): void {
   const material = new THREE.MeshStandardMaterial({ color: 0xe6dcc8, roughness: 0.45, metalness: 0.02 });
   for (let i = 0; i < 6; i += 1) {
-    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.01, i === 0 || i === 5 ? 0.045 : 0.03, 4), material);
-    tooth.position.set((i - 2.5) * 0.016, lower ? 0.015 : -0.04, lower ? -0.02 : -0.26);
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.008, i === 0 || i === 5 ? 0.055 : 0.032, 4), material);
+    tooth.position.set((i - 2.5) * 0.014, lower ? 0.02 : -0.02, lower ? -0.04 : -0.36);
     tooth.rotation.x = lower ? 0 : Math.PI;
     parent.add(tooth);
   }
@@ -308,9 +308,9 @@ export type Werewolf = {
 };
 
 export function createWerewolf(): Werewolf {
-  const boundsMin: Vec3 = [-1.05, -0.02, -1.35];
-  const boundsMax: Vec3 = [1.05, 1.55, 1.0];
-  const net = surfaceNet([46, 52, 50], sdWerewolf, boundsMin, boundsMax);
+  const boundsMin: Vec3 = [-0.7, -0.02, -1.55];
+  const boundsMax: Vec3 = [0.7, 1.05, 0.95];
+  const net = surfaceNet([40, 44, 64], sdWerewolf, boundsMin, boundsMax);
   const segments = buildSegments();
   const vertexCount = net.positions.length / 3;
   const colors = new Float32Array(vertexCount * 3);
@@ -345,9 +345,9 @@ export function createWerewolf(): Werewolf {
 
   const bodyMaterial = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.9,
+    roughness: 0.94,
     metalness: 0,
-    envMapIntensity: 0.35,
+    envMapIntensity: 0.18,
   });
   const mesh = new THREE.SkinnedMesh(geometry, bodyMaterial);
   mesh.castShadow = true;
@@ -394,8 +394,8 @@ export function createWerewolf(): Werewolf {
   const pawL = boneObjects.get('pawL');
   const pawR = boneObjects.get('pawR');
   if (!head || !jaw || !handL || !handR || !pawL || !pawR) throw new Error('face bones missing');
-  addEye(head, -0.07);
-  addEye(head, 0.07);
+  addEye(head, -0.055);
+  addEye(head, 0.055);
   addEars(head);
   addTeeth(head, false);
   addTeeth(jaw, true);
@@ -438,8 +438,8 @@ export function createWerewolf(): Werewolf {
   group.add(mesh, maneCloth);
   if (maneFur) group.add(maneFur);
   // The muzzle of the field sits on -z. That is the character front.
-  // Muzzle is local -z. +0.7 rad yaws that front toward -x so the snout reads in profile.
-  group.rotation.y = 0.7;
+  // Muzzle is local -z. A slight yaw shows snout length and both eyes.
+  group.rotation.y = 0.18;
 
   const update = (time: number) => {
     const spine = boneObjects.get('spine');
@@ -447,7 +447,7 @@ export function createWerewolf(): Werewolf {
     const tail2 = boneObjects.get('tail2');
     const tail3 = boneObjects.get('tail3');
     if (spine) spine.rotation.x = Math.sin(time * 1.7) * 0.035;
-    jaw.rotation.x = -0.34 + Math.sin(time * 1.4) * 0.03;
+    jaw.rotation.x = -0.5 + Math.sin(time * 1.4) * 0.02;
     if (tail1 && tail2 && tail3) {
       tail1.rotation.y = Math.sin(time * 1.8) * 0.18;
       tail2.rotation.y = Math.sin(time * 1.8 + 0.6) * 0.22;
