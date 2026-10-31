@@ -1,9 +1,9 @@
 import * as THREE from 'three/webgpu';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { emissive, mrt, output, pass } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { sharpen } from 'three/addons/tsl/display/SharpenNode.js';
 import { createArena } from './arena.ts';
+import { FLOOR_Y, followView, stepMove, type MoveInput, type Pose } from './control.ts';
 import { createWerewolf } from './werewolf.ts';
 
 const overlay = document.querySelector('#overlay');
@@ -49,8 +49,9 @@ async function gpuDescription(): Promise<string> {
 
 async function main(): Promise<void> {
   setText(gpuNote, await gpuDescription());
-  const canvas = document.querySelector('canvas');
-  if (!(canvas instanceof HTMLCanvasElement)) throw new Error('canvas missing');
+  const canvasQuery = document.querySelector('canvas');
+  if (!(canvasQuery instanceof HTMLCanvasElement)) throw new Error('canvas missing');
+  const canvas: HTMLCanvasElement = canvasQuery;
 
   const renderer = new THREE.WebGPURenderer({
     canvas,
@@ -74,14 +75,22 @@ async function main(): Promise<void> {
   scene.environmentIntensity = 0.35;
 
   const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.08, 80);
-  // The mounted mesh faces local -z. Sit off to the side of that axis.
-  camera.position.set(-0.55, 0.78, -2.55);
-  const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 0.48, 0);
-  controls.enableDamping = true;
-  controls.maxDistance = 12;
-  controls.minDistance = 1.6;
-  controls.update();
+  const pose: Pose = { x: 0, y: FLOOR_Y, z: 0, yaw: 0 };
+  const held = new Set<string>();
+
+  const rememberKey = (event: KeyboardEvent, down: boolean) => {
+    if (event.code) {
+      if (down) held.add(event.code);
+      else held.delete(event.code);
+    }
+    if (event.key) {
+      if (down) held.add(event.key);
+      else held.delete(event.key);
+    }
+    if (event.code.startsWith('Arrow') || /^Key[WASD]$/.test(event.code)) event.preventDefault();
+  };
+  window.addEventListener('keydown', (event) => rememberKey(event, true));
+  window.addEventListener('keyup', (event) => rememberKey(event, false));
 
   const sun = new THREE.DirectionalLight(0xd5e2f6, 4.2);
   sun.position.set(-0.5, 2.8, -3.1);
@@ -104,6 +113,41 @@ async function main(): Promise<void> {
   const arena = createArena();
   const werewolf = await createWerewolf();
   scene.add(arena.object, werewolf.object);
+
+  function readMove(): MoveInput {
+    const down = (...names: string[]) => names.some((name) => held.has(name));
+    let forward = 0;
+    let strafe = 0;
+    if (down('KeyW', 'ArrowUp', 'w')) forward += 1;
+    if (down('KeyS', 'ArrowDown', 's')) forward -= 1;
+    if (down('KeyD', 'ArrowRight', 'd')) strafe += 1;
+    if (down('KeyA', 'ArrowLeft', 'a')) strafe -= 1;
+    return { forward, strafe };
+  }
+
+  function place(): void {
+    werewolf.object.position.set(pose.x, pose.y, pose.z);
+    werewolf.object.rotation.y = pose.yaw;
+    const view = followView(pose);
+    camera.position.set(view.x, view.y, view.z);
+    camera.lookAt(view.lookX, view.lookY, view.lookZ);
+    sun.position.set(pose.x - 0.5, pose.y + 2.8, pose.z - 3.1);
+    sun.target.position.set(pose.x, pose.y + 0.5, pose.z);
+    const x = pose.x.toFixed(4);
+    const y = pose.y.toFixed(4);
+    const z = pose.z.toFixed(4);
+    const yaw = pose.yaw.toFixed(4);
+    document.documentElement.dataset.x = x;
+    document.documentElement.dataset.y = y;
+    document.documentElement.dataset.z = z;
+    document.documentElement.dataset.yaw = yaw;
+    canvas.dataset.x = x;
+    canvas.dataset.y = y;
+    canvas.dataset.z = z;
+    canvas.dataset.yaw = yaw;
+  }
+
+  place();
 
   const scenePass = pass(scene, camera);
   scenePass.setMRT(mrt({ output, emissive }));
@@ -130,9 +174,14 @@ async function main(): Promise<void> {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     frames += 1;
+    const next = stepMove(pose, readMove(), dt);
+    pose.x = next.x;
+    pose.y = next.y;
+    pose.z = next.z;
+    pose.yaw = next.yaw;
+    place();
     werewolf.update(frames / 60);
     arena.update(frames / 60);
-    controls.update();
     const start = performance.now();
     pipeline.render();
     cpuMs = performance.now() - start;
@@ -166,10 +215,8 @@ async function main(): Promise<void> {
         fpsFrames = 0;
       }
     }
-    if (!shot || frames < 28) {
-      if (shot) window.setTimeout(tick, 16);
-      else requestAnimationFrame(tick);
-    }
+    if (shot) window.setTimeout(tick, 16);
+    else requestAnimationFrame(tick);
   };
   if (shot) window.setTimeout(tick, 16);
   else requestAnimationFrame(tick);

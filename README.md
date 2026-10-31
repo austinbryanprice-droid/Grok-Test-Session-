@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Open the printed local URL. Drag to orbit. The overlay shows fps, CPU submit time, GPU time when timestamp queries are available, and draw calls.
+Open the printed local URL. WASD or the arrow keys walk the werewolf across the floor, and the view stays with it. The overlay shows fps, CPU submit time, GPU time when timestamp queries are available, and draw calls.
 
 Lighting is a cool key, a cool fill, and a dim hall. Bloom is taken from the emissive buffer. Anti-aliasing is MSAA, then a light sharpen.
 

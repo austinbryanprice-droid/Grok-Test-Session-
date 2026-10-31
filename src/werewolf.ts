@@ -32,10 +32,15 @@ export async function createWerewolf(): Promise<Werewolf> {
   box.getCenter(center);
   model.position.set(-center.x, -box.min.y, -center.z);
 
+  // Mount lives on a child. The player root only receives position and rotation.y;
+  // writing that yaw replaces the root quaternion and would wipe this mount.
+  const mount = new THREE.Group();
+  mount.quaternion.setFromUnitVectors(ASSET_FRONT, new THREE.Vector3(0, 0, -1));
+  mount.add(model);
+
   const group = new THREE.Group();
   group.name = 'werewolf';
-  group.add(model);
-  group.quaternion.setFromUnitVectors(ASSET_FRONT, new THREE.Vector3(0, 0, -1));
+  group.add(mount);
 
   return {
     object: group,
