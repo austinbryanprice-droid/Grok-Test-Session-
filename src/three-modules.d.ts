@@ -2,6 +2,7 @@ declare module 'three/webgpu' {
   const anyValue: any;
   export {
     anyValue as Vector3,
+    anyValue as Box3,
     anyValue as Quaternion,
     anyValue as Matrix4,
     anyValue as CylinderGeometry,
@@ -50,6 +51,12 @@ declare module 'three/tsl' {
 
 declare module 'three/addons/controls/OrbitControls.js' {
   export const OrbitControls: any;
+}
+
+declare module 'three/addons/loaders/GLTFLoader.js' {
+  export class GLTFLoader {
+    loadAsync(url: string): Promise<{ scene: any }>;
+  }
 }
 
 declare module 'three/addons/tsl/display/BloomNode.js' {

@@ -61,7 +61,7 @@ async function main(): Promise<void> {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.45;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -74,16 +74,16 @@ async function main(): Promise<void> {
   scene.environmentIntensity = 0.35;
 
   const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.08, 80);
-  // Group yaw +0.06 sends local -z toward about (-0.06, 0, -1). Sit off to the side of that ray.
-  camera.position.set(-0.9, 0.78, -2.7);
+  // The mounted mesh faces local -z. Sit off to the side of that axis.
+  camera.position.set(-0.55, 0.78, -2.55);
   const controls = new OrbitControls(camera, canvas);
-  controls.target.set(-0.05, 0.5, -0.6);
+  controls.target.set(0, 0.48, 0);
   controls.enableDamping = true;
   controls.maxDistance = 12;
   controls.minDistance = 1.6;
   controls.update();
 
-  const sun = new THREE.DirectionalLight(0xd5e2f6, 2.8);
+  const sun = new THREE.DirectionalLight(0xd5e2f6, 4.2);
   sun.position.set(-0.5, 2.8, -3.1);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
   scene.add(sun, sun.target, fill, hemi);
 
   const arena = createArena();
-  const werewolf = createWerewolf();
+  const werewolf = await createWerewolf();
   scene.add(arena.object, werewolf.object);
 
   const scenePass = pass(scene, camera);
