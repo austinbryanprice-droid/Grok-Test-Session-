@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { EYES, FANGS, fangTip, sdWerewolf, surfaceNet } from '../src/sdf.ts';
 
 function sphere(x: number, y: number, z: number): number {
@@ -61,4 +62,48 @@ for (const eye of EYES) {
   assert.ok(ahead > 0, `the muzzle should leave the eye (${eye.x}, ${eye.y}, ${eye.z}) in view (${ahead})`);
 }
 
-console.log(`sdf tests passed (${count} sphere verts, muzzle tip z=${noseZ.toFixed(2)})`);
+const werewolfSource = readFileSync(new URL('../src/werewolf.ts', import.meta.url), 'utf8');
+const loaded = werewolfSource.match(/loadAsync\(\s*['"]([^'"]+)['"]\s*\)/);
+assert.ok(loaded, 'the page should load a character mesh by url');
+const meshUrl = loaded[1];
+assert.ok(meshUrl.startsWith('/'), `character url should be a page path (${meshUrl})`);
+const glb = readFileSync(new URL(`../public${meshUrl}`, import.meta.url));
+const jsonLength = glb.readUInt32LE(12);
+const gltf = JSON.parse(glb.subarray(20, 20 + jsonLength).toString('utf8'));
+const binStart = 20 + jsonLength + 8;
+let minX = Infinity;
+let minY = Infinity;
+let minZ = Infinity;
+let maxX = -Infinity;
+let maxY = -Infinity;
+let maxZ = -Infinity;
+let positionCount = 0;
+for (const meshDef of gltf.meshes ?? []) {
+  for (const prim of meshDef.primitives ?? []) {
+    const accessor = gltf.accessors[prim.attributes?.POSITION];
+    assert.ok(accessor, 'a character primitive is missing positions');
+    const view = gltf.bufferViews[accessor.bufferView];
+    const stride = view.byteStride || 12;
+    const start = binStart + (view.byteOffset || 0) + (accessor.byteOffset || 0);
+    for (let i = 0; i < accessor.count; i += 1) {
+      const offset = start + i * stride;
+      const x = glb.readFloatLE(offset);
+      const y = glb.readFloatLE(offset + 4);
+      const z = glb.readFloatLE(offset + 8);
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (z < minZ) minZ = z;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+      if (z > maxZ) maxZ = z;
+      positionCount += 1;
+    }
+  }
+}
+const spanX = maxX - minX;
+const spanY = maxY - minY;
+const spanZ = maxZ - minZ;
+assert.ok(positionCount > 100, `character mesh has too few positions (${positionCount})`);
+assert.ok(spanX > 0.2 && spanY > 0.2 && spanZ > 0.2, `character mesh is flat (${spanX}, ${spanY}, ${spanZ})`);
+
+console.log(`sdf tests passed (${count} sphere verts, muzzle tip z=${noseZ.toFixed(2)}, mesh spans ${spanX.toFixed(3)} ${spanY.toFixed(3)} ${spanZ.toFixed(3)})`);
