@@ -272,6 +272,12 @@ export function sdWerewolf(x: number, y: number, z: number): number {
 
 export const HEAD_ORIGIN = { x: 0, y: 0.78, z: -0.7 };
 
+// Brow points above the muzzle. The crease behind the snout hides an eye from the camera.
+export const EYES = [
+  { x: -0.09, y: 0.87, z: -0.8 },
+  { x: 0.09, y: 0.87, z: -0.8 },
+];
+
 // Character-space points that sit in the open mouth. Teeth are mounted on these.
 export const FANGS: Array<{ x: number; y: number; z: number; down: boolean; length: number }> = [
   { x: -0.038, y: 0.748, z: -1.16, down: true, length: 0.05 },

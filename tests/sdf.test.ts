@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { FANGS, fangTip, sdWerewolf, surfaceNet } from '../src/sdf.ts';
+import { EYES, FANGS, fangTip, sdWerewolf, surfaceNet } from '../src/sdf.ts';
 
 function sphere(x: number, y: number, z: number): number {
   return Math.hypot(x, y, z) - 1;
@@ -53,6 +53,12 @@ for (const fang of FANGS) {
   const tip = fangTip(fang);
   const tipGap = sdWerewolf(tip.x, tip.y, tip.z);
   assert.ok(tipGap > 0, `fang tip (${tip.x}, ${tip.y}, ${tip.z}) is inside the snout (${tipGap})`);
+}
+for (const eye of EYES) {
+  const seat = sdWerewolf(eye.x, eye.y, eye.z);
+  assert.ok(seat > 0, `eye (${eye.x}, ${eye.y}, ${eye.z}) should sit in air on the brow (${seat})`);
+  const ahead = sdWerewolf(eye.x * 0.4, eye.y - 0.03, eye.z - 0.18);
+  assert.ok(ahead > 0, `the muzzle should leave the eye (${eye.x}, ${eye.y}, ${eye.z}) in view (${ahead})`);
 }
 
 console.log(`sdf tests passed (${count} sphere verts, muzzle tip z=${noseZ.toFixed(2)})`);

@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import { createStrand, stepStrand, type Strand } from './cloth.ts';
-import { FANGS, HEAD_ORIGIN, sdWerewolf, surfaceNet, werewolfRegion, type Vec3 } from './sdf.ts';
+import { EYES, FANGS, HEAD_ORIGIN, sdWerewolf, surfaceNet, werewolfRegion, type Vec3 } from './sdf.ts';
 
 type Joint = { name: string; parent: string | null; pos: Vec3 };
 
@@ -204,61 +204,25 @@ function updateFur(mesh: any): void {
   mesh.instanceMatrix.needsUpdate = true;
 }
 
-function irisTexture(): any {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('iris canvas unavailable');
-  ctx.clearRect(0, 0, 128, 128);
-  const iris = ctx.createRadialGradient(64, 64, 6, 64, 64, 46);
-  iris.addColorStop(0, '#140c06');
-  iris.addColorStop(0.28, '#e0a040');
-  iris.addColorStop(0.62, '#8d4e0c');
-  iris.addColorStop(1, '#2a160c');
-  ctx.fillStyle = iris;
-  ctx.beginPath();
-  ctx.arc(64, 64, 46, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#120904';
-  ctx.beginPath();
-  ctx.arc(64, 64, 13, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255, 236, 210, 0.8)';
-  ctx.beginPath();
-  ctx.arc(50, 48, 6, 0, Math.PI * 2);
-  ctx.fill();
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function addEye(parent: any, x: number): void {
-  const sclera = new THREE.Mesh(
-    new THREE.SphereGeometry(0.028, 16, 12),
-    new THREE.MeshStandardMaterial({ color: 0x6d5434, roughness: 0.55, metalness: 0 }),
-  );
-  sclera.position.set(x, 0.045, -0.18);
-  sclera.castShadow = false;
-  sclera.scale.set(1, 0.85, 0.7);
-  const socket = new THREE.Mesh(
-    new THREE.SphereGeometry(0.038, 12, 10),
-    new THREE.MeshStandardMaterial({ color: 0x140d0a, roughness: 1, metalness: 0 }),
-  );
-  socket.position.set(x, 0.04, -0.15);
-  socket.scale.z = 0.45;
+function addEye(parent: any, eye: { x: number; y: number; z: number }): void {
+  // Unlit amber on the brow. A lit disc in the muzzle crease stays dark and one eye is covered.
   const iris = new THREE.Mesh(
-    new THREE.CircleGeometry(0.018, 20),
-    new THREE.MeshStandardMaterial({
-      map: irisTexture(),
-      roughness: 0.32,
-      metalness: 0.04,
-      envMapIntensity: 0.7,
-    }),
+    new THREE.SphereGeometry(0.022, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0xf0a028 }),
   );
-  iris.position.set(x, 0.048, -0.204);
-  iris.rotation.y = Math.PI;
-  parent.add(socket, sclera, iris);
+  iris.material.toneMapped = false;
+  iris.position.set(eye.x - HEAD_ORIGIN.x, eye.y - HEAD_ORIGIN.y, eye.z - HEAD_ORIGIN.z);
+  iris.castShadow = false;
+  iris.receiveShadow = false;
+  const pupil = new THREE.Mesh(
+    new THREE.SphereGeometry(0.009, 12, 8),
+    new THREE.MeshBasicMaterial({ color: 0x120904 }),
+  );
+  pupil.material.toneMapped = false;
+  pupil.position.set(eye.x - HEAD_ORIGIN.x, eye.y - HEAD_ORIGIN.y, eye.z - HEAD_ORIGIN.z - 0.016);
+  pupil.castShadow = false;
+  pupil.receiveShadow = false;
+  parent.add(iris, pupil);
 }
 
 function addEars(parent: any): void {
@@ -399,8 +363,7 @@ export function createWerewolf(): Werewolf {
   const pawL = boneObjects.get('pawL');
   const pawR = boneObjects.get('pawR');
   if (!head || !jaw || !handL || !handR || !pawL || !pawR) throw new Error('face bones missing');
-  addEye(head, -0.055);
-  addEye(head, 0.055);
+  for (const eye of EYES) addEye(head, eye);
   addEars(head);
   addTeeth(head);
   addClaws(handL, 1, false);
@@ -442,8 +405,8 @@ export function createWerewolf(): Werewolf {
   group.add(mesh, maneCloth);
   if (maneFur) group.add(maneFur);
   // The muzzle of the field sits on -z. That is the character front.
-  // Muzzle is local -z. A slight yaw shows snout length and both eyes.
-  group.rotation.y = 0.18;
+  // A small yaw keeps the snout long in frame without swinging it across one eye.
+  group.rotation.y = 0.06;
 
   const update = (time: number) => {
     const spine = boneObjects.get('spine');

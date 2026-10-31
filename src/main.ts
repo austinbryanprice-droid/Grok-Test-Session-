@@ -74,7 +74,7 @@ async function main(): Promise<void> {
   scene.environmentIntensity = 0.35;
 
   const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.08, 80);
-  // Group yaw +0.18 sends local -z toward about (-0.18, 0, -0.98). Sit just off that ray.
+  // Group yaw +0.06 sends local -z toward about (-0.06, 0, -1). Sit off to the side of that ray.
   camera.position.set(-0.9, 0.78, -2.7);
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(-0.05, 0.5, -0.6);
